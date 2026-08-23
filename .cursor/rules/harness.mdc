@@ -1,0 +1,33 @@
+---
+description: Engineer-led delivery harness: one story at a time, TDD, branch per issue, hard guardrails
+alwaysApply: true
+---
+
+# Delivery harness
+
+Read [AGENTS.md](../../AGENTS.md) before acting. It defines how work is selected, executed, and reviewed.
+
+## Non-negotiable
+
+- Implement only the story currently **In progress** on the board. Never two at once
+- Test first. Watch it fail before writing the implementation (`tdd` skill)
+- Branch per story, several small typed commits, PR to propose. Never commit on `main`
+- **Never merge a pull request.** Open it, report status, and stop. Merging is a human action
+- Run `npm run typecheck && npm run lint && npm test` before each code commit
+- Log AI assistance with `scripts/ai_log.py` after the work
+
+## Required process skills
+
+`api-design` for endpoint changes, `architecture` for cross-module or storage changes, `security-review` for auth/URL/secret/limit changes, `code-review` before every PR, `pr-review` when reviewing one.
+
+## Human approval
+
+Every merge requires a human, without exception. URL allow/deny policy, authentication, cache invalidation, uniqueness handling, and the threat model additionally require the reviewer to confirm the design. Say so explicitly and wait.
+
+## Never
+
+- Fetch, resolve, or crawl a destination URL
+- Use a 301 redirect; it is always 302
+- Log raw API keys or raw IP addresses
+- Weaken a test to make a build pass
+- Add features the current story did not ask for
