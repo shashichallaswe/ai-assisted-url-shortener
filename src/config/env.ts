@@ -51,3 +51,16 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
 
   return result.data;
 }
+
+/**
+ * Entry-point wrapper: a misconfigured process should print one readable line
+ * and exit, not a stack trace that buries which variable is wrong.
+ */
+export function parseEnvOrExit(source: Record<string, string | undefined> = process.env): Env {
+  try {
+    return parseEnv(source);
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exit(1);
+  }
+}

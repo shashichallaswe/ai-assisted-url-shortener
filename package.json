@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "migrate": "tsx src/db/migrate.ts",
+    "migrate": "tsx src/db/migrate-cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
