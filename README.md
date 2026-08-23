@@ -2,7 +2,7 @@
 
 Production-minded URL shortener prototype demonstrating AI-assisted engineering execution.
 
-**Status: skeleton.** The service boots, validates its configuration, migrates its schema, and answers `GET /health`. No URL creation, redirect, analytics, or authentication yet — those are separate stories on the board.
+**Status: create API.** The service boots, migrates, answers `GET /health`, and creates short links at `POST /api/v1/urls`. Redirect, stats, and takedown are later stories.
 
 ## Prerequisites
 
@@ -17,7 +17,8 @@ Run these in order from a clean checkout.
 # 1. Install dependencies
 npm install
 
-# 2. Create your local environment file
+# 2. Create your local environment file, then set API_KEY to a random
+#    16+ character secret if you want local curls to work
 cp .env.example .env
 
 # 3. Start PostgreSQL 16 and Redis 7, then wait for both to report healthy
@@ -41,6 +42,17 @@ curl -i http://localhost:3000/health
 ```
 
 Expected: `HTTP/1.1 200 OK` and a body of `{"status":"ok","uptime":<seconds>}`.
+
+Create a short link (requires `API_KEY` in `.env`, hashed into `api_keys` at boot):
+
+```bash
+curl -i http://localhost:3000/api/v1/urls \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"originalUrl":"https://example.com/a"}'
+```
+
+Expected: `HTTP/1.1 201 Created` with `{ code, shortUrl, originalUrl, expiresAt }`. `shortUrl` is built from `BASE_URL`, not from the request `Host` header.
 
 To stop the dependencies, `docker compose down`. Add `-v` to discard the database volume as well.
 
@@ -68,11 +80,15 @@ src/
   server.ts          process entry point
   config/            environment schema and validation
   routes/            HTTP only
+  services/          business rules
+  repos/             SQL
+  security/          auth and destination policy
   db/                pool, migration runner, migration discovery
   observability/     log serializers
   lib/               pure helpers
 migrations/          numbered SQL, applied in order
 test/                Vitest suites; *.integration.test.ts need PostgreSQL
+openapi.yaml         HTTP contract
 ```
 
 Layering rule: dependencies point one direction only. A route never issues a query, a service never sets a status code, a repository never decides policy.

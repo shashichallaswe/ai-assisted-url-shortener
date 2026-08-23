@@ -54,7 +54,7 @@ Base path for managed resources is `/api/v1`. The redirect deliberately sits at 
 
 Contract notes that later stories must honour:
 
-- `POST /api/v1/urls` accepts `{ url, expiresAt? }` and honours an optional `Idempotency-Key` header. The same key with the same body returns the original `201` result; the same key with a different body is a `409`.
+- `POST /api/v1/urls` accepts `{ originalUrl, expiresAt? }` and honours an optional `Idempotency-Key` header. The same key with the same body returns the original `201` result; the same key with a different body is a `409`. The JSON field is `originalUrl`; the column it maps to is `urls.destination_url`.
 - A malformed code (wrong length or outside the base62 charset) returns `404` without touching the database. Bad input should not become database load.
 - An expired or soft-deleted link is indistinguishable from a missing one to an anonymous caller. Both are `404`.
 - Errors share one JSON shape: `{ error: { code, message, details? } }`. `details` carries field-level validation output and nothing else.
