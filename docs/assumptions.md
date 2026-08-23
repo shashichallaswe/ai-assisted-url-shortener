@@ -93,7 +93,7 @@ These are prototype targets, chosen to be defensible rather than impressive. The
 
 ## 7. Environment and credential assumptions
 
-- **Runtime**: Node.js 20 LTS with npm. TypeScript compiled as ESM.
+- **Runtime**: Node.js 22 LTS with npm. TypeScript compiled as ESM.
 - **Dependencies**: PostgreSQL 16 and Redis 7, both supplied by `docker-compose.yml`. The service assumes no managed cloud resources and runs entirely on a laptop.
 - **Configuration**: environment variables only, validated at startup. The process exits rather than starting in a half-configured state.
 - **Secrets**: `.env` holds real local values and is git-ignored. `.env.example` is committed and contains placeholders only. No credential is ever committed, and the harness hook blocks it at commit time.

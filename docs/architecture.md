@@ -10,7 +10,7 @@ Two datastores, one process. No message broker, no third datastore. Everything t
 
 ```
                        ┌───────────────────────────────────┐
-   client ───────────► │        Fastify (Node 20, TS)      │
+   client ───────────► │        Fastify (Node 22, TS)      │
                        │                                   │
                        │  routes/         HTTP only        │
                        │  security/       auth, URL policy,│
