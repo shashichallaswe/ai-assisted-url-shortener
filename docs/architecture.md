@@ -50,12 +50,12 @@ Dependencies point one direction only, per the `architecture` skill: a route nev
 | 1 | Parse `Authorization: Bearer <key>`; reject a missing or malformed header | `routes` | `401` |
 | 2 | SHA-256 the presented key, look it up by `api_keys.key_hash`; reject if absent or `revoked_at IS NOT NULL` | `security/auth` | `401` |
 | 3 | Increment and check `rl:create:<apiKeyId>:<window>` | `security/rateLimit` | `429` + `Retry-After` |
-| 4 | Validate body shape `{ url, expiresAt? }` with Zod | `routes` | `400` with field-level `details` |
+| 4 | Validate body shape `{ originalUrl, expiresAt? }` with Zod | `routes` | `400` with field-level `details` |
 | 5 | Apply the URL policy (section 4) | `security/urlPolicy` | `400` |
 | 6 | Reject `expiresAt` at or before now | `services/urls` | `400` |
 | 7 | If `Idempotency-Key` is present, fingerprint the canonical body (section 6) | `services/urls` | — |
 | 8 | Transaction: reserve the idempotency key, generate a code, insert the row | `repos` | `409` on key reuse with a different body |
-| 9 | Respond `201` with `{ code, shortUrl, destinationUrl, expiresAt, createdAt }` and a `Location` header | `routes` | — |
+| 9 | Respond `201` with `{ code, shortUrl, originalUrl, expiresAt }` and a `Location` header | `routes` | — |
 
 Two deliberate choices in this flow:
 
