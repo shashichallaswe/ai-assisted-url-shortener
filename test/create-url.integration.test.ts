@@ -138,21 +138,24 @@ describe.skipIf(!databaseAvailable)('POST /api/v1/urls', () => {
       );
     });
 
-    it.each(['http://example.com', 'javascript:alert(1)', 'data:text/html,hi', 'https://localhost/', 'https://10.0.0.1/'])(
-      'returns 400 for rejected destination %s',
-      async (originalUrl) => {
-        const { rawKey } = await insertApiKey(pool);
-        const response = await post(rawKey, { originalUrl });
+    it.each([
+      'http://example.com',
+      'javascript:alert(1)',
+      'data:text/html,hi',
+      'https://localhost/',
+      'https://10.0.0.1/',
+    ])('returns 400 for rejected destination %s', async (originalUrl) => {
+      const { rawKey } = await insertApiKey(pool);
+      const response = await post(rawKey, { originalUrl });
 
-        expect(response.statusCode).toBe(400);
-        const body = response.json<ErrorBody>();
-        expect(body.error.code).toBe('destination_not_allowed');
-        expect(body.error.details).toEqual(
-          expect.arrayContaining([expect.objectContaining({ field: 'originalUrl' })]),
-        );
-        expect(JSON.stringify(body)).not.toContain(originalUrl);
-      },
-    );
+      expect(response.statusCode).toBe(400);
+      const body = response.json<ErrorBody>();
+      expect(body.error.code).toBe('destination_not_allowed');
+      expect(body.error.details).toEqual(
+        expect.arrayContaining([expect.objectContaining({ field: 'originalUrl' })]),
+      );
+      expect(JSON.stringify(body)).not.toContain(originalUrl);
+    });
 
     it('returns 400 when expiresAt is not a datetime', async () => {
       const { rawKey } = await insertApiKey(pool);
@@ -264,15 +267,21 @@ describe.skipIf(!databaseAvailable)('POST /api/v1/urls', () => {
     it('retries transparently when the generated code is already taken', async () => {
       const { id, rawKey } = await insertApiKey(pool);
       await pool.query(`delete from urls where code = any($1::text[])`, [['AAAAAAA', 'BBBBBBB']]);
-      await pool.query(
-        `insert into urls (code, destination_url, created_by) values ($1, $2, $3)`,
-        ['AAAAAAA', VALID_URL, id],
-      );
+      await pool.query(`insert into urls (code, destination_url, created_by) values ($1, $2, $3)`, [
+        'AAAAAAA',
+        VALID_URL,
+        id,
+      ]);
       const generateCode = vi.fn().mockReturnValueOnce('AAAAAAA').mockReturnValueOnce('BBBBBBB');
       const colliding = await makeApp({ generateCode });
 
       try {
-        const response = await post(rawKey, { originalUrl: 'https://example.com/retry' }, {}, colliding);
+        const response = await post(
+          rawKey,
+          { originalUrl: 'https://example.com/retry' },
+          {},
+          colliding,
+        );
 
         expect(response.statusCode).toBe(201);
         expect(response.json<CreatedBody>().code).toBe('BBBBBBB');
@@ -285,15 +294,21 @@ describe.skipIf(!databaseAvailable)('POST /api/v1/urls', () => {
     it('returns 503 rather than a duplicate when retries are exhausted', async () => {
       const { id, rawKey } = await insertApiKey(pool);
       await pool.query(`delete from urls where code = $1`, ['CCCCCCC']);
-      await pool.query(
-        `insert into urls (code, destination_url, created_by) values ($1, $2, $3)`,
-        ['CCCCCCC', VALID_URL, id],
-      );
+      await pool.query(`insert into urls (code, destination_url, created_by) values ($1, $2, $3)`, [
+        'CCCCCCC',
+        VALID_URL,
+        id,
+      ]);
       const generateCode = vi.fn().mockReturnValue('CCCCCCC');
       const exhausted = await makeApp({ generateCode });
 
       try {
-        const response = await post(rawKey, { originalUrl: 'https://example.com/exhaust' }, {}, exhausted);
+        const response = await post(
+          rawKey,
+          { originalUrl: 'https://example.com/exhaust' },
+          {},
+          exhausted,
+        );
 
         expect(response.statusCode).toBe(503);
         expect(response.json<ErrorBody>().error.code).toBe('code_generation_exhausted');

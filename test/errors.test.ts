@@ -8,7 +8,10 @@ describe('describeError', () => {
 
   it('unwraps an AggregateError, which is what pg throws when a host is unreachable', () => {
     const aggregate = new AggregateError(
-      [new Error('connect ECONNREFUSED 127.0.0.1:5432'), new Error('connect ECONNREFUSED ::1:5432')],
+      [
+        new Error('connect ECONNREFUSED 127.0.0.1:5432'),
+        new Error('connect ECONNREFUSED ::1:5432'),
+      ],
       '',
     );
 

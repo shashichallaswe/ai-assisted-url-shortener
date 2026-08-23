@@ -72,7 +72,10 @@ function parseIdempotencyKey(header: string | undefined): string | undefined {
   }
   if (trimmed.length > MAX_IDEMPOTENCY_KEY_LENGTH) {
     throw new HttpError(400, 'validation_error', 'Invalid request', [
-      { field: 'Idempotency-Key', message: `must be at most ${String(MAX_IDEMPOTENCY_KEY_LENGTH)} characters` },
+      {
+        field: 'Idempotency-Key',
+        message: `must be at most ${String(MAX_IDEMPOTENCY_KEY_LENGTH)} characters`,
+      },
     ]);
   }
   return trimmed;
