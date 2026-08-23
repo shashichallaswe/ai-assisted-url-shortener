@@ -1,0 +1,126 @@
+openapi: 3.1.0
+info:
+  title: URL Shortener
+  version: 0.1.0
+  description: >
+    Authenticated short-link creation. Redirect, stats, and takedown are
+    specified in later stories.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        '200':
+          description: Process is running. Does not check dependencies.
+  /api/v1/urls:
+    post:
+      summary: Create a short URL
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            maxLength: 256
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUrlRequest'
+      responses:
+        '201':
+          description: Mapping persisted.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedUrl'
+        '400':
+          description: Invalid body, rejected destination, or expiresAt in the past.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing, malformed, unknown, or revoked API key. Bodies are identical.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Idempotency-Key reused with a different body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Short-code allocation exhausted after three collisions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    CreateUrlRequest:
+      type: object
+      required: [originalUrl]
+      properties:
+        originalUrl:
+          type: string
+          maxLength: 2048
+        expiresAt:
+          type: string
+          format: date-time
+    CreatedUrl:
+      type: object
+      required: [code, shortUrl, originalUrl, expiresAt]
+      properties:
+        code:
+          type: string
+          minLength: 7
+          maxLength: 7
+        shortUrl:
+          type: string
+          format: uri
+        originalUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+                required: [field, message]
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
