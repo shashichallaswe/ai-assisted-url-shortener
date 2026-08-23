@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "python3 .cursor/hooks/guard-shell.py",
+        "timeout": 15,
+        "failClosed": true
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "python3 .cursor/hooks/audit-edit.py",
+        "timeout": 10
+      }
+    ]
+  }
+}
