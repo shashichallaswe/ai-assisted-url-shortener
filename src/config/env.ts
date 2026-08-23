@@ -18,6 +18,18 @@ export const envSchema = z.object({
   BASE_URL: httpUrl,
   DATABASE_URL: z.url(),
   REDIS_URL: z.url(),
+
+  /**
+   * Optional demo key. When set, it is hashed and upserted at boot so local
+   * curls work. Never logged. Empty string is treated as unset.
+   */
+  API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => (value === undefined || value.trim() === '' ? undefined : value))
+    .refine((value) => value === undefined || value.length >= 16, {
+      message: 'must be at least 16 characters when set',
+    }),
 });
 
 export type Env = z.infer<typeof envSchema>;
