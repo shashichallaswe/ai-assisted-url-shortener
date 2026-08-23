@@ -15,7 +15,7 @@ The context is financial services. That framing drives two decisions that a gene
 | # | Ambiguity | Interpretation chosen | Why |
 | --- | --- | --- | --- |
 | 1 | "Redirect" does not name a status code | **302 Found**, with `Cache-Control: private, no-store` | A 301 is cached indefinitely by browsers. The second click never reaches the service, so analytics silently under-count and a takedown cannot take effect |
-| 2 | "Analytics" does not name a grain | One row per click, plus a per-day rollup for reads | Per-click rows keep the raw record for later questions; the rollup keeps the stats endpoint fast without building a warehouse |
+| 2 | "Analytics" does not name a grain | One row per click, plus a per-day rollup for reads | Per-click rows keep the raw record for later questions; the rollup keeps the stats endpoint fast without building a warehouse. The rollup is derived rather than stored: Redis counters plus a `group by` over `click_events`. See [architecture.md](architecture.md) section 6 |
 | 3 | "Core APIs" does not say who may call them | API key on every write and admin read; the redirect stays public | An unauthenticated create endpoint is an open redirect generator. Indefensible in this context. The redirect must stay public or the product does not work |
 | 4 | "Reliability features" is unenumerated | Expiration, rate limiting, health and readiness probes, cache invalidation on delete, and idempotent creates | These are the failure modes a shortener actually has: stale links, abuse, dependency outages, and duplicate submissions |
 | 5 | Silent on whether a UI is expected | No user interface | Not requested. The time is better spent on API quality, validation, and tests, which is what the assessment reads |
@@ -30,7 +30,7 @@ The context is financial services. That framing drives two decisions that a gene
 | Redirect status | 302, never 301 | 301 is cached by browsers and would silently stop click analytics |
 | Authentication | API key via `Authorization: Bearer` on create and admin routes; redirect stays public | A shortener with unauthenticated writes is indefensible for a financial-services context |
 | Storage | PostgreSQL as source of truth, Redis as cache-aside and rate limiter | Durability and analytical queries in Postgres; hot-path latency in Redis |
-| Analytics grain | Per-click event rows plus daily aggregate | Useful to the business without building a warehouse |
+| Analytics grain | Per-click event rows plus a daily aggregate, the aggregate derived rather than stored | Useful to the business without building a warehouse or a fifth table |
 | Expiration | Part of v1 | It is a reliability requirement, not an enhancement |
 | Custom aliases | Deferred to the brownfield scenario | Provides a genuine inherited-code change later |
 | User interface | None | Not requested; time is better spent on API quality and validation |
