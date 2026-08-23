@@ -2,7 +2,7 @@
 
 Production-minded URL shortener prototype demonstrating AI-assisted engineering execution.
 
-**Status: create API.** The service boots, migrates, answers `GET /health`, and creates short links at `POST /api/v1/urls`. Redirect, stats, and takedown are later stories.
+**Status: create + redirect.** The service boots, migrates, creates short links, and redirects `GET /:code` with `302` and `Cache-Control: private, no-store`. Stats and takedown are later stories.
 
 ## Prerequisites
 
@@ -53,6 +53,14 @@ curl -i http://localhost:3000/api/v1/urls \
 ```
 
 Expected: `HTTP/1.1 201 Created` with `{ code, shortUrl, originalUrl, expiresAt }`. `shortUrl` is built from `BASE_URL`, not from the request `Host` header.
+
+Follow the short link. Must be `302`, never `301`:
+
+```bash
+curl -sS -D - -o /dev/null "$BASE_URL/$CODE"
+```
+
+Expected: `HTTP/1.1 302 Found`, `Location: https://example.com/a`, `Cache-Control: private, no-store`.
 
 To stop the dependencies, `docker compose down`. Add `-v` to discard the database volume as well.
 
