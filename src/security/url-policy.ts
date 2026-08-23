@@ -2,9 +2,7 @@ import { isIP } from 'node:net';
 
 const MAX_LENGTH = 2048;
 
-export type DestinationInspection =
-  | { ok: true; href: string }
-  | { ok: false; reason: string };
+export type DestinationInspection = { ok: true; href: string } | { ok: false; reason: string };
 
 /**
  * Structural destination checks only. Never fetches, never resolves DNS:
@@ -51,9 +49,7 @@ export function inspectDestination(raw: string): DestinationInspection {
 }
 
 function unwrapIpv6(hostname: string): string {
-  return hostname.startsWith('[') && hostname.endsWith(']')
-    ? hostname.slice(1, -1)
-    : hostname;
+  return hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
 }
 
 function stripTrailingDots(hostname: string): string {

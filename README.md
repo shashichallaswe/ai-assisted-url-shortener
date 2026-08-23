@@ -66,6 +66,7 @@ To stop the dependencies, `docker compose down`. Add `-v` to discard the databas
 | `npm run migrate` | Apply pending migrations; idempotent |
 | `npm run typecheck` | `tsc --noEmit` with strict mode |
 | `npm run lint` | ESLint with type-aware rules |
+| `npm run format` | Prettier write for TypeScript and JSON |
 | `npm test` | Vitest, once |
 
 ## Tests and the database
