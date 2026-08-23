@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CACHE_TTL_SECONDS, NEGATIVE_CACHE_TTL_SECONDS, cacheTtlSeconds } from '../src/lib/cache-ttl.js';
+import {
+  MAX_CACHE_TTL_SECONDS,
+  NEGATIVE_CACHE_TTL_SECONDS,
+  cacheTtlSeconds,
+} from '../src/lib/cache-ttl.js';
 
 describe('cacheTtlSeconds', () => {
   const now = new Date('2026-08-23T12:00:00.000Z');

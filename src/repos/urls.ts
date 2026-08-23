@@ -49,7 +49,10 @@ export async function findUrlById(db: Pool | PoolClient, id: string): Promise<Ur
   return row === undefined ? null : mapUrl(row);
 }
 
-export async function findUrlByCode(db: Pool | PoolClient, code: string): Promise<UrlRecord | null> {
+export async function findUrlByCode(
+  db: Pool | PoolClient,
+  code: string,
+): Promise<UrlRecord | null> {
   const { rows } = await db.query<UrlRow>(
     `select id, code, destination_url, created_at, expires_at, deleted_at from urls where code = $1`,
     [code],

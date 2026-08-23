@@ -4,9 +4,7 @@ export interface RedirectCandidate {
   deletedAt: Date | null;
 }
 
-export type RedirectDecision =
-  | { ok: true; destinationUrl: string }
-  | { ok: false };
+export type RedirectDecision = { ok: true; destinationUrl: string } | { ok: false };
 
 /**
  * Guards re-evaluated on every request, including cache hits. Expiry is a
