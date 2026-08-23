@@ -21,6 +21,16 @@ export default tseslint.config(
       // explicit at the call site rather than silently ignoring a promise.
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
+      // Mirrors the `_` convention TypeScript already applies to unused params.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
       'no-console': 'error',
       eqeqeq: ['error', 'always'],
     },
