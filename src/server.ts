@@ -37,6 +37,12 @@ const app = await buildApp({
   cache,
   clicks,
   rateLimiter,
+  checkPostgres: async () => {
+    await pool.query('select 1');
+  },
+  checkRedis: async () => {
+    await redis.ping();
+  },
   rateLimits: {
     createMax: env.RATE_LIMIT_CREATE_MAX,
     createWindowSeconds: env.RATE_LIMIT_WINDOW_SECONDS,

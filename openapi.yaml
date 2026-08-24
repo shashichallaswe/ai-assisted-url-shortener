@@ -14,6 +14,18 @@ paths:
       responses:
         '200':
           description: Process is running. Does not check dependencies.
+  /ready:
+    get:
+      summary: Readiness
+      description: >
+        Returns 200 only when PostgreSQL and Redis both answer a ping.
+        A 503 names the dependency that failed. Stop a container to verify:
+        `docker compose stop postgres` then curl /ready.
+      responses:
+        '200':
+          description: Both dependencies are reachable.
+        '503':
+          description: One or both dependencies are down. Body names postgres and redis as ok or down.
   /{code}:
     get:
       summary: Redirect to the destination

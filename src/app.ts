@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { Pool } from 'pg';
 import { ClickCapture } from './analytics/click-capture.js';
@@ -14,7 +13,10 @@ import {
 } from './lib/constants.js';
 import type { RateLimitConfig, RateLimiter } from './security/rate-limit.js';
 import { insertClickEvents } from './repos/click-events.js';
-import { loggerOptions } from './observability/logger.js';
+import { accessLogFields } from './observability/access-log.js';
+import { createLoggerOptions } from './observability/logger.js';
+import type { ReadinessProbes } from './observability/readiness.js';
+import { requestIdFromHeaders } from './observability/request-id.js';
 import { registerErrorHandler } from './plugins/error-handler.js';
 import { healthRoutes } from './routes/health.js';
 import { redirectRoutes } from './routes/redirect.js';
@@ -32,6 +34,8 @@ export interface BuildAppOptions {
   clickIpSalt?: string;
   rateLimiter?: RateLimiter;
   rateLimits?: RateLimitConfig;
+  checkPostgres?: () => Promise<void>;
+  checkRedis?: () => Promise<void>;
 }
 
 declare module 'fastify' {
@@ -51,13 +55,20 @@ declare module 'fastify' {
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const serverOptions: FastifyServerOptions = {
-    genReqId: () => randomUUID(),
-    logger: options.logger === false ? false : loggerOptions,
+    genReqId: (req) => requestIdFromHeaders(req.headers),
+    disableRequestLogging: true,
+    logger: options.logger === false ? false : createLoggerOptions(process.env.LOG_LEVEL),
   };
 
   const app = Fastify(serverOptions);
   registerErrorHandler(app);
+  const probes: ReadinessProbes = {
+    postgres: options.checkPostgres,
+    redis: options.checkRedis,
+  };
+  app.decorate('readinessProbes', probes);
   await app.register(healthRoutes);
+  registerAccessLog(app);
 
   if (options.pool !== undefined) {
     if (options.baseUrl === undefined || options.baseUrl.length === 0) {
@@ -102,4 +113,28 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   }
 
   return app;
+}
+
+function registerAccessLog(app: FastifyInstance): void {
+  app.addHook('onRequest', (request, reply, done) => {
+    void reply.header('x-request-id', request.id);
+    (request as { startedAtNs?: bigint }).startedAtNs = process.hrtime.bigint();
+    done();
+  });
+  app.addHook('onResponse', (request, reply, done) => {
+    const started = (request as { startedAtNs?: bigint }).startedAtNs;
+    const durationMs =
+      started === undefined ? 0 : Number(process.hrtime.bigint() - started) / 1_000_000;
+    request.log.info(
+      accessLogFields({
+        reqId: request.id,
+        method: request.method,
+        path: request.url,
+        statusCode: reply.statusCode,
+        durationMs: Math.round(durationMs * 1_000) / 1_000,
+      }),
+      'request completed',
+    );
+    done();
+  });
 }

@@ -31,14 +31,19 @@ export function serializeReply(reply: LoggableReply): { statusCode: number } {
   return { statusCode: reply.statusCode };
 }
 
-export const loggerOptions = {
-  level: process.env.LOG_LEVEL ?? 'info',
-  redact: {
-    paths: ['req.headers.authorization', 'req.headers.cookie'],
-    remove: true,
-  },
-  serializers: {
-    req: serializeRequest,
-    res: serializeReply,
-  },
-};
+export function createLoggerOptions(level = process.env.LOG_LEVEL ?? 'info') {
+  return {
+    level,
+    redact: {
+      paths: ['req.headers.authorization', 'req.headers.cookie'],
+      remove: true,
+    },
+    serializers: {
+      req: serializeRequest,
+      res: serializeReply,
+    },
+  };
+}
+
+/** Snapshot used by unit tests that assert redaction paths. */
+export const loggerOptions = createLoggerOptions();

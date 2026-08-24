@@ -43,6 +43,12 @@ curl -i http://localhost:3000/health
 
 Expected: `HTTP/1.1 200 OK` and a body of `{"status":"ok","uptime":<seconds>}`.
 
+Readiness (Postgres and Redis). After `docker compose stop postgres` this should be 503 naming postgres:
+
+```bash
+curl -i http://localhost:3000/ready
+```
+
 Create a short link (requires `API_KEY` in `.env`, hashed into `api_keys` at boot):
 
 ```bash
