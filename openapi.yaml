@@ -3,8 +3,8 @@ info:
   title: URL Shortener
   version: 0.1.0
   description: >
-    Authenticated short-link creation. Redirect, stats, and takedown are
-    specified in later stories.
+    Authenticated short-link creation and public 302 redirect. Stats and
+    takedown are specified in later stories.
 servers:
   - url: http://localhost:3000
 paths:
@@ -14,6 +14,35 @@ paths:
       responses:
         '200':
           description: Process is running. Does not check dependencies.
+  /{code}:
+    get:
+      summary: Redirect to the destination
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema:
+            type: string
+            minLength: 7
+            maxLength: 7
+      responses:
+        '302':
+          description: Live mapping. Never 301. Not cached by intermediaries.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+            Cache-Control:
+              schema:
+                type: string
+                enum: ['private, no-store']
+        '404':
+          description: Unknown, expired, deleted, malformed, or reserved code. Bodies are identical.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v1/urls:
     post:
       summary: Create a short URL
@@ -68,6 +97,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/v1/urls/{code}:
+    get:
+      summary: Read URL metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema:
+            type: string
+            minLength: 7
+            maxLength: 7
+      responses:
+        '200':
+          description: Mapping exists (including expired). Soft-deleted is 404.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlMetadata'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Unknown or soft-deleted code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   securitySchemes:
     bearerAuth:
@@ -102,6 +163,27 @@ components:
           type: string
           format: date-time
           nullable: true
+    UrlMetadata:
+      type: object
+      required: [code, shortUrl, originalUrl, expiresAt, createdAt]
+      properties:
+        code:
+          type: string
+          minLength: 7
+          maxLength: 7
+        shortUrl:
+          type: string
+          format: uri
+        originalUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
     Error:
       type: object
       required: [error]

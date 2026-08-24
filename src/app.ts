@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { Pool } from 'pg';
+import type { UrlCache } from './cache/url-cache.js';
+import { MemoryUrlCache } from './cache/memory-url-cache.js';
 import { generateShortCode } from './lib/codes.js';
 import { loggerOptions } from './observability/logger.js';
 import { registerErrorHandler } from './plugins/error-handler.js';
 import { healthRoutes } from './routes/health.js';
+import { redirectRoutes } from './routes/redirect.js';
 import { urlRoutes } from './routes/urls.js';
 
 export interface BuildAppOptions {
@@ -14,6 +17,7 @@ export interface BuildAppOptions {
   baseUrl?: string;
   clock?: () => Date;
   generateCode?: () => string;
+  cache?: UrlCache;
 }
 
 declare module 'fastify' {
@@ -23,6 +27,7 @@ declare module 'fastify' {
       baseUrl: string;
       clock: () => Date;
       generateCode: () => string;
+      cache: UrlCache;
     };
   }
 }
@@ -48,8 +53,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       // Keep generateCode on the config object. Fastify binds decorated
       // functions, which would swallow Vitest mocks used in collision tests.
       generateCode: options.generateCode ?? generateShortCode,
+      cache: options.cache ?? new MemoryUrlCache(),
     });
     await app.register(urlRoutes, { prefix: '/api/v1' });
+    await app.register(redirectRoutes);
   }
 
   return app;

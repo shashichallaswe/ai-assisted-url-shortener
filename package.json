@@ -22,6 +22,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "fastify": "^5.12.1",
+    "ioredis": "^6.0.0",
     "pg": "^8.23.0",
     "zod": "^4.4.3"
   },

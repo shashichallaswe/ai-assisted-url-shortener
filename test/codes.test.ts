@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CODE_LENGTH, generateShortCode, isWellFormedCode } from '../src/lib/codes.js';
+import {
+  CODE_LENGTH,
+  generateShortCode,
+  isReservedCode,
+  isWellFormedCode,
+} from '../src/lib/codes.js';
 
 describe('generateShortCode', () => {
   it('returns a 7-character base62 string', () => {
@@ -13,6 +18,19 @@ describe('generateShortCode', () => {
     const sample = Array.from({ length: 200 }, () => generateShortCode());
 
     expect(new Set(sample).size).toBe(sample.length);
+  });
+});
+
+describe('isReservedCode', () => {
+  it.each(['health', 'ready', 'api', 'openapi', 'favicon', 'HEALTH', 'OpenAPI'])(
+    'treats %s as reserved',
+    (code) => {
+      expect(isReservedCode(code)).toBe(true);
+    },
+  );
+
+  it('does not treat a well-formed generated code as reserved', () => {
+    expect(isReservedCode('aB3xY7z')).toBe(false);
   });
 });
 

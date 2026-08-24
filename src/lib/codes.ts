@@ -33,3 +33,13 @@ export function generateShortCode(): string {
 export function isWellFormedCode(value: string): boolean {
   return /^[0-9A-Za-z]{7}$/u.test(value);
 }
+
+const RESERVED_CODES = new Set(['health', 'ready', 'api', 'openapi', 'favicon']);
+
+/**
+ * Path segments that must never be resolved as short codes, even when they
+ * happen to be 7 characters of base62 (`openapi`, `favicon`).
+ */
+export function isReservedCode(value: string): boolean {
+  return RESERVED_CODES.has(value.toLowerCase());
+}

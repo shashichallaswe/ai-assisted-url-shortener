@@ -20,3 +20,7 @@ export class HttpError extends Error {
 export function unauthorized(): HttpError {
   return new HttpError(401, 'unauthorized', 'Unauthorized');
 }
+
+export function notFound(): HttpError {
+  return new HttpError(404, 'not_found', 'Not found');
+}

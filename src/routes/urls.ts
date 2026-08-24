@@ -2,7 +2,9 @@ import type { FastifyPluginCallback } from 'fastify';
 import { z } from 'zod';
 import { firstHeader } from '../lib/headers.js';
 import { HttpError } from '../lib/http-error.js';
+import { findUrlByCode } from '../repos/urls.js';
 import { authenticateApiKey, parseBearerToken } from '../security/auth.js';
+import { getUrlMetadata } from '../services/redirect.js';
 import { createUrl } from '../services/urls.js';
 
 const MAX_IDEMPOTENCY_KEY_LENGTH = 256;
@@ -35,6 +37,19 @@ export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
     );
 
     return reply.status(201).header('Location', created.shortUrl).send(created);
+  });
+
+  app.get('/urls/:code', async (request, reply) => {
+    const rawKey = parseBearerToken(firstHeader(request.headers.authorization));
+    await authenticateApiKey(app.db, rawKey);
+    const metadata = await getUrlMetadata(
+      {
+        baseUrl: app.appConfig.baseUrl,
+        findByCode: (code) => findUrlByCode(app.db, code),
+      },
+      (request.params as { code: string }).code,
+    );
+    return reply.status(200).send(metadata);
   });
   done();
 };
