@@ -112,7 +112,9 @@ Those two together force an in-process queue:
 - Flushed on whichever comes first: 100 events or 200 milliseconds, as a single multi-row `INSERT`.
 - Drained with a timeout on `SIGTERM`.
 
-**Accepted trade-off:** a hard crash loses whatever is in the buffer, up to 200 milliseconds of clicks. Redis counters absorb most of that loss because they are incremented synchronously in step 7, so totals stay approximately right even when individual event rows are lost. Making click capture fully durable requires the broker that this story's constraints exclude; it is named in the scale-up path instead.
+**Accepted trade-off (v1, at-most-once):** click rows live in an in-process buffer until a background flush. A crash, a full queue, or a failed `INSERT` drops those events; they are not retried. Redis counters are incremented without waiting for the durable write, so totals stay approximately right even when some event rows are lost. Making capture exactly-once requires the broker this story's constraints exclude; it is named in the scale-up path instead.
+
+v1 therefore prefers a 302 that always succeeds over a complete click ledger. That is a known limitation, not an accident.
 
 ## 4. URL policy
 
