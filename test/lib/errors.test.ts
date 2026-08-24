@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeError } from '../src/lib/errors/describe.js';
+import { describeError } from '../../src/lib/errors/describe.js';
 
 describe('describeError', () => {
   it('uses the message of an ordinary error', () => {

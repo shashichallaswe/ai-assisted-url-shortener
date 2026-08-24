@@ -103,7 +103,11 @@ src/
   observability/     log serializers
   lib/               pure helpers; errors/ holds HTTP, Postgres, and describe helpers
 migrations/          numbered SQL, applied in order
-test/                Vitest suites; *.integration.test.ts need PostgreSQL
+test/
+  helpers/           shared fixtures
+  lib/ security/ …   unit tests, folders match src/
+  integration/       HTTP + PostgreSQL (skipped if the database is down)
+  db/                migration runner (also needs PostgreSQL)
 openapi.yaml         HTTP contract
 ```
 

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { hashApiKey, hashesMatch, parseBearerToken } from '../src/security/auth.js';
-import { HttpError } from '../src/lib/errors/http-error.js';
+import { hashApiKey, hashesMatch, parseBearerToken } from '../../src/security/auth.js';
+import { HttpError } from '../../src/lib/errors/http-error.js';
 
 describe('parseBearerToken', () => {
   it('extracts the token from a Bearer header', () => {

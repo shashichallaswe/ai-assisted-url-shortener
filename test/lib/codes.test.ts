@@ -4,7 +4,7 @@ import {
   generateShortCode,
   isReservedCode,
   isWellFormedCode,
-} from '../src/lib/codes.js';
+} from '../../src/lib/codes.js';
 
 describe('generateShortCode', () => {
   it('returns a 7-character base62 string', () => {

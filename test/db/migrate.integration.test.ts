@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { migrate } from '../src/db/migrate.js';
-import { createTestPool, isDatabaseAvailable } from './helpers/database.js';
+import { migrate } from '../../src/db/migrate.js';
+import { createTestPool, isDatabaseAvailable } from '../helpers/database.js';
 
 const databaseAvailable = await isDatabaseAvailable();
 

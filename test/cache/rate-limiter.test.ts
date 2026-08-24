@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MemoryRateLimiter } from '../src/cache/memory-rate-limiter.js';
-import { RedisRateLimiter } from '../src/cache/redis-rate-limiter.js';
-import { rateLimitIpDigest } from '../src/security/rate-limit.js';
+import { MemoryRateLimiter } from '../../src/cache/memory-rate-limiter.js';
+import { RedisRateLimiter } from '../../src/cache/redis-rate-limiter.js';
+import { rateLimitIpDigest } from '../../src/security/rate-limit.js';
 
 describe('MemoryRateLimiter', () => {
   it('allows up to the limit and then denies with retryAfterSeconds', async () => {
