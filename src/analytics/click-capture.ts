@@ -1,9 +1,8 @@
 import type { ClickCounters } from '../cache/click-counters.js';
+import { MAX_CLICK_QUEUE } from '../lib/constants.js';
 import { hashIp } from '../lib/ip-hash.js';
 import { truncate } from '../lib/truncate.js';
 import type { DurableClick } from '../repos/click-events.js';
-
-export const MAX_CLICK_QUEUE = 10_000;
 
 export interface ClickInput {
   urlId: string;

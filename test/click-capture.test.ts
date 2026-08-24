@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ClickCapture } from '../src/analytics/click-capture.js';
 import { MemoryClickCounters } from '../src/cache/memory-click-counters.js';
+import { CLICK_TEXT_LIMIT } from '../src/lib/constants.js';
 import { hashIp } from '../src/lib/ip-hash.js';
 import type { DurableClick } from '../src/repos/click-events.js';
 
@@ -45,8 +46,8 @@ describe('ClickCapture', () => {
     const row = inserted[0];
     expect(row?.urlId).toBe('42');
     expect(row?.ipHash.equals(hashIp(ip, salt, at))).toBe(true);
-    expect(row?.userAgent).toHaveLength(512);
-    expect(row?.referrer).toHaveLength(512);
+    expect(row?.userAgent).toHaveLength(CLICK_TEXT_LIMIT);
+    expect(row?.referrer).toHaveLength(CLICK_TEXT_LIMIT);
     expect(JSON.stringify(inserted)).not.toContain(ip);
   });
 

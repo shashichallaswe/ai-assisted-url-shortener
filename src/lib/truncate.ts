@@ -1,4 +1,4 @@
-export const CLICK_TEXT_LIMIT = 512;
+import { CLICK_TEXT_LIMIT } from './constants.js';
 
 export function truncate(value: string | undefined, max = CLICK_TEXT_LIMIT): string | null {
   if (value === undefined || value.length === 0) {
