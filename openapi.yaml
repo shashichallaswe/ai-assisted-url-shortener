@@ -43,6 +43,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '429':
+          description: Redirect rate limit exceeded. Retry-After is seconds until the window resets.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v1/urls:
     post:
       summary: Create a short URL
@@ -87,6 +97,16 @@ paths:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Idempotency-Key reused with a different body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Create rate limit exceeded for this API key. Retry-After is seconds until the window resets.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
           content:
             application/json:
               schema:

@@ -169,6 +169,10 @@ Every key carries a `v1` namespace segment. A change to a payload shape becomes 
 
 A cache miss is normal and must be correct, never an error. Redis being unavailable degrades latency and disables rate limiting; it does not change any answer the service gives, with the single exception in the next section.
 
+Rate-limit defaults (overridable via `RATE_LIMIT_*`): 30 creates per API key per minute, 120 redirects per hashed IP per minute. Unknown codes still consume the redirect bucket. Redis errors fail open on both paths. Values and fail-open are a human sign-off item (see `docs/threat-model.md`).
+
+Rate-limit defaults (overridable via `RATE_LIMIT_*`): 30 creates per API key per minute, 120 redirects per hashed IP per minute. Redirect is 404-rate-limited too, so unknown codes still consume the bucket. Redis errors fail open on both paths. Values and the fail-open choice are a human sign-off item (see `docs/threat-model.md`).
+
 ### Cache invalidation
 
 **Deletion** — `DELETE /api/v1/urls/:code`:

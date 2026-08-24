@@ -52,10 +52,27 @@ Revocation is `revoked_at IS NOT NULL`. Revoked rows are kept as audit evidence.
 
 ## Residual risks this story does not close
 
-- Short-code enumeration on the public redirect (rate limiting is issue #14)
+- Short-code enumeration on the public redirect (rate limiting is issue #14; values below)
 - Takedown / cache invalidation (issue #15)
 - Per-key ownership of stats (signed off separately under #12)
 - DNS-to-private-IP destinations, as above
+
+## Rate limits (issue #14)
+
+Fixed 60-second windows, stored in Redis as `rl:create:v1:<apiKeyId>:<window>` and `rl:redirect:v1:<ipDigest>:<window>`.
+
+| Path | Key | Default | Why |
+| --- | --- | --- | --- |
+| `POST /api/v1/urls` | API key id | 30 / minute | Enough for a client; bulk minting is the abuse we care about |
+| `GET /:code` | SHA-256 of `rl:<pepper>:<ip>`, 32 hex chars | 120 / minute | ~2/s covers a person plus unfurls. 62^7 codes at 2/s is not a feasible enumeration |
+
+Client IP is hashed before it becomes a Redis key. Raw IPs are not stored and are not logged.
+
+**Redis unavailable: fail open.** A 429 that fires because Redis is down takes the product down with the limiter. The limiter logs and allows the request. This is the architecture contract: Redis never changes a correct answer. Create and redirect both fail open.
+
+Counters expire with the window (`EXPIRE` on first `INCR`), so a client recovers without a restart.
+
+**Human sign-off for #14:** these numeric defaults and fail-open. Confirm those, not merely that the tests are green.
 
 ## Human sign-off
 
