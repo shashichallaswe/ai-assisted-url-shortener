@@ -50,11 +50,13 @@ export class RedisUrlCache implements UrlCache {
     }
   }
 
-  async del(code: string): Promise<void> {
+  async del(code: string): Promise<boolean> {
     try {
       await this.redis.del(liveKey(code));
+      return true;
     } catch (error) {
       this.onError(error);
+      return false;
     }
   }
 }

@@ -149,12 +149,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    delete:
+      summary: Take down a short URL
+      description: >
+        Soft-deletes the mapping: the row and its click history are retained.
+        The cache entry is removed before 204 so the next redirect is 404.
+        Repeating the call is 204. A failed cache invalidation is 500, not 204.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema:
+            type: string
+            minLength: 7
+            maxLength: 7
+      responses:
+        '204':
+          description: Link is deleted (or already was).
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Unknown code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Row is deleted but cache invalidation failed; retry the delete.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v1/urls/{code}/stats:
     get:
       summary: Read click stats for a short URL
       description: >
-        Any valid API key may read stats for any existing code (same rule as
-        metadata). The default window is the last 30 UTC days including today.
+        Any valid API key may read stats for any existing code, including
+        soft-deleted links (audit). The default window is the last 30 UTC days
+        including today.
         Pass `days` (1–90) to change the window. Per-day counts are aggregated
         in SQL with GROUP BY, not in application memory, and `clicksByDay` is
         sparse: a day with no clicks is absent rather than reported as zero.

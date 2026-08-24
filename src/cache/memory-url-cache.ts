@@ -58,10 +58,10 @@ export class MemoryUrlCache implements UrlCache {
     return Promise.resolve();
   }
 
-  del(code: string): Promise<void> {
+  del(code: string): Promise<boolean> {
     this.deletes += 1;
     this.live.delete(code);
     this.negative.delete(code);
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
 }

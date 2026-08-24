@@ -36,3 +36,7 @@ export function notFound(): HttpError {
 export function tooManyRequests(retryAfterSeconds: number): HttpError {
   return new HttpError(429, 'rate_limited', 'Too many requests', undefined, retryAfterSeconds);
 }
+
+export function cacheInvalidationFailed(): HttpError {
+  return new HttpError(500, 'cache_invalidation_failed', 'Internal server error');
+}

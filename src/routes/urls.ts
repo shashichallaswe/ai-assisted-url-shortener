@@ -8,7 +8,7 @@ import { authenticateApiKey, parseBearerToken } from '../security/auth.js';
 import { enforceRateLimit } from '../security/rate-limit.js';
 import { getUrlMetadata } from '../services/redirect.js';
 import { getUrlStats, parseStatsDays } from '../services/stats.js';
-import { createUrl } from '../services/urls.js';
+import { createUrl, deleteUrl } from '../services/urls.js';
 
 const MAX_IDEMPOTENCY_KEY_LENGTH = 256;
 
@@ -79,6 +79,20 @@ export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
       parseStatsDays(typeof days === 'string' ? days : undefined),
     );
     return reply.status(200).send(stats);
+  });
+
+  app.delete('/urls/:code', async (request, reply) => {
+    const rawKey = parseBearerToken(firstHeader(request.headers.authorization));
+    await authenticateApiKey(app.db, rawKey);
+    await deleteUrl(
+      {
+        pool: app.db,
+        cache: app.appConfig.cache,
+        clock: app.appConfig.clock,
+      },
+      (request.params as { code: string }).code,
+    );
+    return reply.status(204).send();
   });
   done();
 };

@@ -44,7 +44,7 @@ export async function getUrlStats(
     throw notFound();
   }
   const row = await deps.findByCode(code);
-  if (row === null || row.deletedAt !== null) {
+  if (row === null) {
     throw notFound();
   }
 
