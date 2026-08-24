@@ -76,6 +76,28 @@ Counters expire with the window (`EXPIRE` on first `INCR`), so a client recovers
 
 **Human sign-off for #14:** these numeric defaults and fail-open. Confirm those, not merely that the tests are green.
 
+## Open redirect
+
+The product is an open redirect with a structural allow-list. Containment is https-only destinations, no `javascript:`/`data:`/`file:`, `302` rather than `301`, and `Cache-Control: private, no-store`. Takedown is a soft delete plus an explicit cache `DEL`. A 301 or a cached 302 would make takedown a suggestion.
+
+## Short-code enumeration
+
+Codes are 7 characters of CSPRNG base62 (~3.5×10¹²). They are not sequential. The public `GET /:code` is rate-limited by hashed IP (120/minute default). 404 bodies do not distinguish missing, expired, and deleted. That slows guessing; it does not make an unauthenticated redirect unguessable. Treat the code as a capability URL.
+
+## Credential handling
+
+API keys are SHA-256 at rest, compared with `timingSafeEqual`, shown in logs only as an 8-character prefix. Missing and invalid keys share one 401. `.env` is git-ignored. Revoked rows remain for audit and fail the same 401.
+
+## Cache staleness
+
+Redirect uses cache-aside (`url:v1:<code>`). A hit still re-checks expiry and deletion in the cached payload; TTL is a backstop, not the takedown mechanism. On delete, the transaction commits first, then `DEL` runs twice; a second failure is `500`, not `204`. Negative cache entries TTL out (60s) so a newly created code is not stuck 404. Losing Redis is a miss, not a wrong answer.
+
+**Accepted residual:** a client that ignored `Cache-Control` can keep a 302. We cannot fix other people's caches; we can refuse to emit `301`.
+
+## Analytics loss
+
+Click rows are written from an in-process queue after the 302 is sent. A crash, a full queue (10k), or a failed `INSERT` drops events. Redis `clicks:total:v1:*` counters may drift and are **not** what `GET .../stats` reads. Stats always aggregate `click_events` in SQL. v1 prefers a redirect that succeeds over a complete ledger.
+
 ## Human sign-off
 
 Required by the issue: the allow/deny list and the authentication path. Confirm those two, not merely that the tests are green.

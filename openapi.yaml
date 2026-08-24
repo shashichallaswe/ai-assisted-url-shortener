@@ -3,8 +3,9 @@ info:
   title: URL Shortener
   version: 0.1.0
   description: >
-    Authenticated short-link creation, public 302 redirect, and per-link click
-    stats. Takedown is specified in a later story.
+    Authenticated short-link creation, public 302 redirect, per-link click
+    stats, and authenticated soft-delete takedown. Redis is optional for
+    correctness: losing it degrades latency and rate limits, not answers.
 servers:
   - url: http://localhost:3000
 paths:
