@@ -56,12 +56,24 @@ describe.skipIf(!databaseAvailable)('rate limits', () => {
     try {
       const headers = { authorization: `Bearer ${rawKey}` };
       expect(
-        (await app.inject({ method: 'POST', url: '/api/v1/urls', headers, payload: { originalUrl: VALID_URL } }))
-          .statusCode,
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/api/v1/urls',
+            headers,
+            payload: { originalUrl: VALID_URL },
+          })
+        ).statusCode,
       ).toBe(201);
       expect(
-        (await app.inject({ method: 'POST', url: '/api/v1/urls', headers, payload: { originalUrl: VALID_URL } }))
-          .statusCode,
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/api/v1/urls',
+            headers,
+            payload: { originalUrl: VALID_URL },
+          })
+        ).statusCode,
       ).toBe(201);
 
       const limited = await app.inject({
@@ -107,8 +119,18 @@ describe.skipIf(!databaseAvailable)('rate limits', () => {
     const app = await makeApp(() => now);
     try {
       const headers = { authorization: `Bearer ${rawKey}` };
-      await app.inject({ method: 'POST', url: '/api/v1/urls', headers, payload: { originalUrl: VALID_URL } });
-      await app.inject({ method: 'POST', url: '/api/v1/urls', headers, payload: { originalUrl: VALID_URL } });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/urls',
+        headers,
+        payload: { originalUrl: VALID_URL },
+      });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/urls',
+        headers,
+        payload: { originalUrl: VALID_URL },
+      });
       expect(
         (
           await app.inject({
