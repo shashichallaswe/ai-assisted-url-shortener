@@ -35,8 +35,9 @@ paths:
           required: true
           schema:
             type: string
-            minLength: 7
-            maxLength: 7
+            minLength: 4
+            maxLength: 32
+            pattern: '^[0-9A-Za-z_-]+$'
       responses:
         '302':
           description: Live mapping. Never 301. Not cached by intermediaries.
@@ -96,7 +97,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreatedUrl'
         '400':
-          description: Invalid body, rejected destination, or expiresAt in the past.
+          description: Invalid body, rejected destination, illegal customAlias, or expiresAt in the past.
           content:
             application/json:
               schema:
@@ -108,7 +109,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: Idempotency-Key reused with a different body.
+          description: Idempotency-Key reused with a different body, or customAlias already in use.
           content:
             application/json:
               schema:
@@ -140,8 +141,9 @@ paths:
           required: true
           schema:
             type: string
-            minLength: 7
-            maxLength: 7
+            minLength: 4
+            maxLength: 32
+            pattern: '^[0-9A-Za-z_-]+$'
       responses:
         '200':
           description: Mapping exists (including expired). Soft-deleted is 404.
@@ -175,8 +177,9 @@ paths:
           required: true
           schema:
             type: string
-            minLength: 7
-            maxLength: 7
+            minLength: 4
+            maxLength: 32
+            pattern: '^[0-9A-Za-z_-]+$'
       responses:
         '204':
           description: Link is deleted (or already was).
@@ -218,8 +221,9 @@ paths:
           required: true
           schema:
             type: string
-            minLength: 7
-            maxLength: 7
+            minLength: 4
+            maxLength: 32
+            pattern: '^[0-9A-Za-z_-]+$'
         - in: query
           name: days
           required: false
@@ -269,14 +273,21 @@ components:
         expiresAt:
           type: string
           format: date-time
+        customAlias:
+          type: string
+          minLength: 4
+          maxLength: 32
+          pattern: '^[0-9A-Za-z_-]+$'
+          description: Optional caller-chosen public identifier. Colliding values return 409.
     CreatedUrl:
       type: object
       required: [code, shortUrl, originalUrl, expiresAt]
       properties:
         code:
           type: string
-          minLength: 7
-          maxLength: 7
+          minLength: 4
+          maxLength: 32
+          pattern: '^[0-9A-Za-z_-]+$'
         shortUrl:
           type: string
           format: uri
@@ -317,8 +328,9 @@ components:
       properties:
         code:
           type: string
-          minLength: 7
-          maxLength: 7
+          minLength: 4
+          maxLength: 32
+          pattern: '^[0-9A-Za-z_-]+$'
         shortUrl:
           type: string
           format: uri

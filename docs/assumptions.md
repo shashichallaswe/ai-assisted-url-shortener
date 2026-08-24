@@ -19,7 +19,7 @@ The context is financial services. That framing drives two decisions that a gene
 | 3 | "Core APIs" does not say who may call them | API key on every write and admin read; the redirect stays public | An unauthenticated create endpoint is an open redirect generator. Indefensible in this context. The redirect must stay public or the product does not work |
 | 4 | "Reliability features" is unenumerated | Expiration, rate limiting, health and readiness probes, cache invalidation on delete, and idempotent creates | These are the failure modes a shortener actually has: stale links, abuse, dependency outages, and duplicate submissions |
 | 5 | Silent on whether a UI is expected | No user interface | Not requested. The time is better spent on API quality, validation, and tests, which is what the assessment reads |
-| 6 | Silent on custom aliases | Deferred to the brownfield scenario (issue #18) | Deliberate. It gives the brownfield exercise a real change against inherited code rather than a contrived one |
+| 6 | Silent on custom aliases | Optional `customAlias` on create, sharing `urls.code` (issue #18) | Deferred through v1 so the brownfield exercise changed inherited code rather than a stub |
 | 7 | Silent on whether expiration is v1 | In v1 | Expiration is how a link stops being a liability. That is a reliability requirement, not an enhancement |
 | 8 | Silent on scale | Single region, single writer, moderate volume | Sized in section 6. Nothing here forecloses sharding later, but nothing is built for it now |
 
@@ -32,7 +32,7 @@ The context is financial services. That framing drives two decisions that a gene
 | Storage | PostgreSQL as source of truth, Redis as cache-aside and rate limiter | Durability and analytical queries in Postgres; hot-path latency in Redis |
 | Analytics grain | Per-click event rows plus a daily aggregate, the aggregate derived rather than stored | Useful to the business without building a warehouse or a fifth table |
 | Expiration | Part of v1 | It is a reliability requirement, not an enhancement |
-| Custom aliases | Deferred to the brownfield scenario | Provides a genuine inherited-code change later |
+| Custom aliases | Optional `customAlias` on `POST /api/v1/urls`; 4–32 of `[0-9A-Za-z_-]`; collision is 409 | Same unique index as generated codes; no overwrite |
 | User interface | None | Not requested; time is better spent on API quality and validation |
 | Short code | 7 characters, base62, generated randomly | 62^7 is roughly 3.5 trillion codes. Random rather than sequential so codes are not enumerable |
 | Deletion | Soft delete | A hard delete destroys the click history and makes takedown unauditable |
@@ -44,7 +44,7 @@ Base path for managed resources is `/api/v1`. The redirect deliberately sits at 
 
 | Method | Path | Auth | Success | Expected failures |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/v1/urls` | Bearer | `201` | `400` invalid body or rejected destination, `401`, `409` idempotency-key reuse with a different body, `429` |
+| `POST` | `/api/v1/urls` | Bearer | `201` | `400` invalid body, rejected destination, or illegal alias; `401`; `409` idempotency-key reuse with a different body or alias collision; `429` |
 | `GET` | `/:code` | Public | `302` | `404` unknown, expired, deleted, or malformed code; `429` |
 | `GET` | `/api/v1/urls/:code` | Bearer | `200` | `401`, `404` |
 | `GET` | `/api/v1/urls/:code/stats` | Bearer | `200` | `400` `days` outside 1-90, `401`, `404` |
@@ -54,8 +54,8 @@ Base path for managed resources is `/api/v1`. The redirect deliberately sits at 
 
 Contract notes that later stories must honour:
 
-- `POST /api/v1/urls` accepts `{ originalUrl, expiresAt? }` and honours an optional `Idempotency-Key` header. The same key with the same body returns the original `201` result; the same key with a different body is a `409`. The JSON field is `originalUrl`; the column it maps to is `urls.destination_url`.
-- A malformed code (wrong length or outside the base62 charset) returns `404` without touching the database. Bad input should not become database load.
+- `POST /api/v1/urls` accepts `{ originalUrl, expiresAt?, customAlias? }` and honours an optional `Idempotency-Key` header. The same key with the same body returns the original `201` result; the same key with a different body is a `409`. The JSON field is `originalUrl`; the column it maps to is `urls.destination_url`.
+- A malformed identifier (outside 4–32 characters of `[0-9A-Za-z_-]`) returns `404` without touching the database. Bad input should not become database load.
 - An expired or soft-deleted link is indistinguishable from a missing one to an anonymous caller. Both are `404`.
 - Errors share one JSON shape: `{ error: { code, message, details? } }`. `details` carries field-level validation output and nothing else.
 - `429` responses carry `Retry-After`.
@@ -67,7 +67,7 @@ Named explicitly so that "we ran out of time" is never confused with "we chose n
 - No web or admin user interface
 - No user accounts, sign-up, sessions, or multi-tenancy beyond the API key
 - No custom domains or vanity hostnames
-- No custom aliases in v1 (deferred to issue #18 by design)
+- Alias transfer, renaming, or reservation (issue #18 implements create-time aliases only)
 - No QR code generation
 - No geographic, device, browser, or referrer analytics
 - No fetching, crawling, unfurling, previewing, or safe-browsing lookup of destination URLs

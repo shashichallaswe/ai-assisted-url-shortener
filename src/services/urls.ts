@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { withTransaction } from '../db/transaction.js';
-import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
+import { isPublicCode, isReservedCode, isWellFormedCode } from '../lib/codes.js';
 import type { UrlCache } from '../cache/url-cache.js';
 import { HttpError, notFound } from '../lib/errors/http-error.js';
 import { isUniqueViolation } from '../lib/errors/pg.js';
@@ -38,6 +38,7 @@ export interface CreateUrlDeps {
 export interface CreateUrlInput {
   originalUrl: string;
   expiresAt?: Date;
+  customAlias?: string;
   idempotencyKey?: string;
 }
 
@@ -67,7 +68,20 @@ export async function createUrl(
     ]);
   }
 
-  const fingerprint = requestFingerprint(inspected.href, input.expiresAt);
+  if (input.customAlias !== undefined) {
+    if (isReservedCode(input.customAlias) || !isPublicCode(input.customAlias)) {
+      throw new HttpError(400, 'validation_error', 'Invalid request', [
+        {
+          field: 'customAlias',
+          message: isReservedCode(input.customAlias)
+            ? 'is reserved'
+            : 'must be 4–32 characters of [0-9A-Za-z_-]',
+        },
+      ]);
+    }
+  }
+
+  const fingerprint = requestFingerprint(inspected.href, input.expiresAt, input.customAlias);
 
   return withTransaction(deps.pool, async (client) => {
     if (input.idempotencyKey !== undefined) {
@@ -82,6 +96,16 @@ export async function createUrl(
       if (replay !== undefined) {
         return replay;
       }
+    }
+
+    if (input.customAlias !== undefined) {
+      return insertChosenCode(client, deps.baseUrl, apiKey.id, {
+        code: input.customAlias,
+        destinationUrl: inspected.href,
+        createdBy: apiKey.id,
+        expiresAt: input.expiresAt ?? null,
+        idempotencyKey: input.idempotencyKey,
+      });
     }
 
     for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt += 1) {
@@ -115,6 +139,40 @@ export async function createUrl(
 
     throw new HttpError(503, 'code_generation_exhausted', 'Unable to allocate a unique short code');
   });
+}
+
+async function insertChosenCode(
+  client: PoolClient,
+  baseUrl: string,
+  apiKeyId: string,
+  input: {
+    code: string;
+    destinationUrl: string;
+    createdBy: string;
+    expiresAt: Date | null;
+    idempotencyKey: string | undefined;
+  },
+): Promise<CreatedUrl> {
+  await client.query('savepoint code_attempt');
+  try {
+    const url = await insertUrl(client, {
+      code: input.code,
+      destinationUrl: input.destinationUrl,
+      createdBy: input.createdBy,
+      expiresAt: input.expiresAt,
+    });
+    await client.query('release savepoint code_attempt');
+    if (input.idempotencyKey !== undefined) {
+      await attachIdempotencyUrl(client, apiKeyId, input.idempotencyKey, url.id);
+    }
+    return toCreated(url, baseUrl);
+  } catch (error) {
+    await client.query('rollback to savepoint code_attempt');
+    if (isUniqueViolation(error, URLS_CODE_CONSTRAINT)) {
+      throw new HttpError(409, 'alias_conflict', 'Custom alias is already in use');
+    }
+    throw error;
+  }
 }
 
 async function replayOrReserve(
@@ -182,7 +240,7 @@ export interface DeleteUrlDeps {
 }
 
 export async function deleteUrl(deps: DeleteUrlDeps, code: string): Promise<void> {
-  if (isReservedCode(code) || !isWellFormedCode(code)) {
+  if (isReservedCode(code) || !isPublicCode(code)) {
     throw notFound();
   }
   const row = await findUrlByCode(deps.pool, code);
@@ -195,9 +253,20 @@ export async function deleteUrl(deps: DeleteUrlDeps, code: string): Promise<void
   await invalidateUrlCache(deps.cache, code);
 }
 
-function requestFingerprint(originalUrl: string, expiresAt: Date | undefined): Buffer {
+function requestFingerprint(
+  originalUrl: string,
+  expiresAt: Date | undefined,
+  customAlias: string | undefined,
+): Buffer {
   return createHash('sha256')
-    .update(JSON.stringify({ originalUrl, expiresAt: expiresAt?.toISOString() ?? null }), 'utf8')
+    .update(
+      JSON.stringify({
+        originalUrl,
+        expiresAt: expiresAt?.toISOString() ?? null,
+        customAlias: customAlias ?? null,
+      }),
+      'utf8',
+    )
     .digest();
 }
 

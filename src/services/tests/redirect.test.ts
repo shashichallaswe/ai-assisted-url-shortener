@@ -24,10 +24,25 @@ describe('resolveRedirect', () => {
     const cache = new MemoryUrlCache();
 
     await expect(
-      resolveRedirect({ clock: () => now, cache, findByCode }, 'nope'),
+      resolveRedirect({ clock: () => now, cache, findByCode }, 'no'),
     ).rejects.toMatchObject({ statusCode: 404 });
     expect(findByCode).not.toHaveBeenCalled();
     expect(cache.gets).toBe(0);
+  });
+
+  it('looks up an alias-shaped identifier in the database', async () => {
+    const row = liveRow({ code: 'my-docs' });
+    const findByCode = vi.fn().mockResolvedValue(row);
+    const cache = new MemoryUrlCache();
+
+    await expect(
+      resolveRedirect({ clock: () => now, cache, findByCode }, row.code),
+    ).resolves.toEqual({
+      destinationUrl: row.destinationUrl,
+      urlId: row.id,
+      code: row.code,
+    });
+    expect(findByCode).toHaveBeenCalledWith('my-docs');
   });
 
   it('does not query the database for a reserved path', async () => {

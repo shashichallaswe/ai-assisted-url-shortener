@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CODE_LENGTH, generateShortCode, isReservedCode, isWellFormedCode } from '../codes.js';
+import {
+  CODE_LENGTH,
+  generateShortCode,
+  isPublicCode,
+  isReservedCode,
+  isWellFormedCode,
+} from '../codes.js';
 
 describe('generateShortCode', () => {
   it('returns a 7-character base62 string', () => {
@@ -36,5 +42,15 @@ describe('isWellFormedCode', () => {
 
   it.each(['short', 'toolong1', 'abc_def', 'abc-def', ''])('rejects %s', (code) => {
     expect(isWellFormedCode(code)).toBe(false);
+  });
+});
+
+describe('isPublicCode', () => {
+  it.each(['aB3xY7z', 'docs', 'my-docs_01', 'A'.repeat(32)])('accepts %s', (code) => {
+    expect(isPublicCode(code)).toBe(true);
+  });
+
+  it.each(['abc', 'A'.repeat(33), 'has space', 'slash/x', 'plus+1', ''])('rejects %s', (code) => {
+    expect(isPublicCode(code)).toBe(false);
   });
 });

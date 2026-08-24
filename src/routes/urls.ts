@@ -15,6 +15,12 @@ const MAX_IDEMPOTENCY_KEY_LENGTH = 256;
 const createUrlBodySchema = z.object({
   originalUrl: z.string().min(1).max(2048),
   expiresAt: z.iso.datetime().optional(),
+  customAlias: z
+    .string()
+    .min(4)
+    .max(32)
+    .regex(/^[0-9A-Za-z_-]+$/u)
+    .optional(),
 });
 
 export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
@@ -44,6 +50,7 @@ export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
       {
         originalUrl: body.originalUrl,
         expiresAt: body.expiresAt,
+        customAlias: body.customAlias,
         idempotencyKey,
       },
     );
@@ -97,7 +104,11 @@ export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
   done();
 };
 
-function parseCreateUrlBody(body: unknown): { originalUrl: string; expiresAt?: Date } {
+function parseCreateUrlBody(body: unknown): {
+  originalUrl: string;
+  expiresAt?: Date;
+  customAlias?: string;
+} {
   const parsed = createUrlBodySchema.safeParse(body);
   if (!parsed.success) {
     throw new HttpError(
@@ -114,6 +125,7 @@ function parseCreateUrlBody(body: unknown): { originalUrl: string; expiresAt?: D
   return {
     originalUrl: parsed.data.originalUrl,
     expiresAt: parsed.data.expiresAt === undefined ? undefined : new Date(parsed.data.expiresAt),
+    customAlias: parsed.data.customAlias,
   };
 }
 

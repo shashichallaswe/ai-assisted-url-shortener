@@ -46,6 +46,17 @@ export function isWellFormedCode(value: string): boolean {
   return /^[0-9A-Za-z]{7}$/u.test(value);
 }
 
+export const ALIAS_MIN_LENGTH = 4;
+export const ALIAS_MAX_LENGTH = 32;
+
+/**
+ * Public identifiers: generated 7-character codes and caller-chosen aliases.
+ * Lookup uses this, not `isWellFormedCode`, so aliases resolve.
+ */
+export function isPublicCode(value: string): boolean {
+  return /^[0-9A-Za-z_-]{4,32}$/u.test(value);
+}
+
 const RESERVED_CODES = new Set(['health', 'ready', 'api', 'openapi', 'favicon']);
 
 /**
