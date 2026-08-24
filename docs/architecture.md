@@ -116,6 +116,30 @@ Those two together force an in-process queue:
 
 v1 therefore prefers a 302 that always succeeds over a complete click ledger. That is a known limitation, not an accident.
 
+### Stats read path
+
+`GET /api/v1/urls/:code/stats` is authenticated and reads Postgres, never the Redis counters. The counters exist to keep the hot path cheap and are allowed to drift; a reported number should come from the durable rows.
+
+The window is bounded: the last 30 UTC days including today by default, `?days=` anything from 1 to 90. An unbounded analytics query over a table that grows with traffic is how a read endpoint becomes an outage, so there is no "all time" option in v1.
+
+Aggregation stays in SQL. The endpoint issues two parameterized statements over `click_events`, both filtered by `url_id` and `clicked_at >= <window start>`: one for `count(*)` and `max(clicked_at)`, one grouping by `(timezone('UTC', clicked_at))::date`. Reading rows into the process and counting them there would move the cost to the wrong tier and grow with the window.
+
+The `(url_id, clicked_at desc)` index serves both, confirmed rather than assumed:
+
+```
+GroupAggregate
+  Group Key: (((timezone('UTC'::text, clicked_at))::date)::text)
+  ->  Sort
+        ->  Index Only Scan using click_events_url_id_clicked_at_idx on click_events
+              Index Cond: ((url_id = 1) AND (clicked_at >= (now() - '30 days'::interval)))
+```
+
+An integration test asserts the plan still names that index, so a future schema change that silently degrades this into a sequential scan fails the suite.
+
+`clicksByDay` is sparse: a day with no clicks is absent rather than reported as zero. Zero-filling is presentation, and the caller knows the window it asked for.
+
+**Who may read analytics is a human sign-off item.** The implemented rule is that any valid API key may read stats for any existing code, matching `GET /api/v1/urls/:code`. Per-key ownership scoping is deliberately not implemented in v1; `urls.created_by` is recorded, so it can be added without a migration.
+
 ## 4. URL policy
 
 Enforced in `security/urlPolicy`, called from the create flow, never from the redirect flow.
@@ -222,7 +246,7 @@ One row per redirect served. Retained indefinitely **in the prototype only**; pr
 | `user_agent` | `text` | null; truncated to 512 characters |
 | `referrer` | `text` | null; truncated to 512 characters |
 
-Indexes: `(url_id, clicked_at desc)`, which serves both the last-click lookup and the per-day `group by` behind the stats endpoint.
+Indexes: `(url_id, clicked_at desc)`, which serves both the last-click lookup and the per-day `group by` behind the stats endpoint (section 3, stats read path).
 
 Raw IP addresses are never stored or logged. The daily salt rotation means the hash cannot be used to correlate a visitor across days, which keeps the table useful for counting without becoming a store of personal data.
 
@@ -286,8 +310,9 @@ Recorded to show the design accommodates growth. **None of this is built, and bu
 
 ## 9. Human sign-off
 
-Per AGENTS.md section 9, three areas need the reviewer to confirm the design and not merely the diff:
+Per AGENTS.md section 9, these areas need the reviewer to confirm the design and not merely the diff:
 
 1. **Short-code uniqueness and collision handling** — section 2: 7 characters of base62, database-arbitrated uniqueness, three retries, then `503`.
 2. **Cache invalidation** — section 5: delete commits before invalidating, a failed invalidation fails the request, and expiry relies on a capped TTL plus a re-check on every hit.
 3. **Hashed credential and hashed IP storage** — section 6: SHA-256 key hashes with a loggable prefix, daily-salted IP hashes, and the absence of a click retention policy.
+4. **Who may read analytics** — section 3, stats read path: any valid API key may read stats for any existing code, with no per-key ownership scoping in v1.

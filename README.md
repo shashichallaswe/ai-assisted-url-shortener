@@ -62,6 +62,13 @@ curl -sS -D - -o /dev/null "$BASE_URL/$CODE"
 
 Expected: `HTTP/1.1 302 Found`, `Location: https://example.com/a`, `Cache-Control: private, no-store`.
 
+Read click stats (same Bearer rule as metadata; default window last 30 UTC days):
+
+```bash
+curl -sS http://localhost:3000/api/v1/urls/$CODE/stats \
+  -H "Authorization: Bearer $API_KEY"
+```
+
 To stop the dependencies, `docker compose down`. Add `-v` to discard the database volume as well.
 
 ## Scripts

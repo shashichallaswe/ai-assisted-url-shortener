@@ -3,8 +3,8 @@ info:
   title: URL Shortener
   version: 0.1.0
   description: >
-    Authenticated short-link creation and public 302 redirect. Stats and
-    takedown are specified in later stories.
+    Authenticated short-link creation, public 302 redirect, and per-link click
+    stats. Takedown is specified in a later story.
 servers:
   - url: http://localhost:3000
 paths:
@@ -129,6 +129,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /api/v1/urls/{code}/stats:
+    get:
+      summary: Read click stats for a short URL
+      description: >
+        Any valid API key may read stats for any existing code (same rule as
+        metadata). The default window is the last 30 UTC days including today.
+        Pass `days` (1–90) to change the window. Per-day counts are aggregated
+        in SQL with GROUP BY, not in application memory, and `clicksByDay` is
+        sparse: a day with no clicks is absent rather than reported as zero.
+        `totalClicks` and `lastClickedAt` describe the requested window, not
+        the lifetime of the link.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema:
+            type: string
+            minLength: 7
+            maxLength: 7
+        - in: query
+          name: days
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+            default: 30
+      responses:
+        '200':
+          description: Totals and per-day series for the window.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlStats'
+        '400':
+          description: Invalid `days` query parameter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Unknown or soft-deleted code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   securitySchemes:
     bearerAuth:
@@ -163,6 +217,30 @@ components:
           type: string
           format: date-time
           nullable: true
+    UrlStats:
+      type: object
+      required: [code, totalClicks, lastClickedAt, clicksByDay]
+      properties:
+        code:
+          type: string
+        totalClicks:
+          type: integer
+          minimum: 0
+        lastClickedAt:
+          type: string
+          format: date-time
+          nullable: true
+        clicksByDay:
+          type: array
+          items:
+            type: object
+            required: [date, clicks]
+            properties:
+              date:
+                type: string
+                format: date
+              clicks:
+                type: integer
     UrlMetadata:
       type: object
       required: [code, shortUrl, originalUrl, expiresAt, createdAt]

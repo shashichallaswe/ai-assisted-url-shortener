@@ -36,3 +36,52 @@ export async function insertClickEvents(
     [urlIds, clickedAt, ipHashes, userAgents, referrers],
   );
 }
+
+/** Windowed per-day rollup. Aggregation stays in SQL. */
+export const CLICK_STATS_BY_DAY_SQL = `
+select (timezone('UTC', clicked_at))::date::text as date, count(*)::int as clicks
+  from click_events
+ where url_id = $1
+   and clicked_at >= $2
+ group by 1
+ order by 1
+`;
+
+export const CLICK_STATS_SUMMARY_SQL = `
+select count(*)::int as total_clicks, max(clicked_at) as last_clicked_at
+  from click_events
+ where url_id = $1
+   and clicked_at >= $2
+`;
+
+export interface ClickDayCount {
+  date: string;
+  clicks: number;
+}
+
+export interface ClickStats {
+  totalClicks: number;
+  lastClickedAt: Date | null;
+  /** Sparse: days with no clicks are absent rather than zero-filled. */
+  clicksByDay: ClickDayCount[];
+}
+
+export async function selectClickStats(
+  db: Pool | PoolClient,
+  urlId: string,
+  since: Date,
+): Promise<ClickStats> {
+  const [summary, byDay] = await Promise.all([
+    db.query<{ total_clicks: number; last_clicked_at: Date | null }>(CLICK_STATS_SUMMARY_SQL, [
+      urlId,
+      since,
+    ]),
+    db.query<{ date: string; clicks: number }>(CLICK_STATS_BY_DAY_SQL, [urlId, since]),
+  ]);
+
+  return {
+    totalClicks: summary.rows[0]?.total_clicks ?? 0,
+    lastClickedAt: summary.rows[0]?.last_clicked_at ?? null,
+    clicksByDay: byDay.rows.map((row) => ({ date: row.date, clicks: row.clicks })),
+  };
+}

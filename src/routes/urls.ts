@@ -2,9 +2,11 @@ import type { FastifyPluginCallback } from 'fastify';
 import { z } from 'zod';
 import { firstHeader } from '../lib/headers.js';
 import { HttpError } from '../lib/http-error.js';
+import { selectClickStats } from '../repos/click-events.js';
 import { findUrlByCode } from '../repos/urls.js';
 import { authenticateApiKey, parseBearerToken } from '../security/auth.js';
 import { getUrlMetadata } from '../services/redirect.js';
+import { getUrlStats, parseStatsDays } from '../services/stats.js';
 import { createUrl } from '../services/urls.js';
 
 const MAX_IDEMPOTENCY_KEY_LENGTH = 256;
@@ -50,6 +52,23 @@ export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
       (request.params as { code: string }).code,
     );
     return reply.status(200).send(metadata);
+  });
+
+  app.get('/urls/:code/stats', async (request, reply) => {
+    const rawKey = parseBearerToken(firstHeader(request.headers.authorization));
+    await authenticateApiKey(app.db, rawKey);
+
+    const { days } = request.query as { days?: unknown };
+    const stats = await getUrlStats(
+      {
+        clock: app.appConfig.clock,
+        findByCode: (code) => findUrlByCode(app.db, code),
+        loadStats: (urlId, since) => selectClickStats(app.db, urlId, since),
+      },
+      (request.params as { code: string }).code,
+      parseStatsDays(typeof days === 'string' ? days : undefined),
+    );
+    return reply.status(200).send(stats);
   });
   done();
 };

@@ -16,3 +16,9 @@ export function clickTotalKey(code: string): string {
 export function clickDayKey(code: string, day: string): string {
   return `clicks:day:v1:${code}:${day}`;
 }
+
+/** Default stats window: last 30 UTC days including today. */
+export const STATS_DEFAULT_DAYS = 30;
+
+/** Upper bound on the `days` query parameter. */
+export const STATS_MAX_DAYS = 90;
