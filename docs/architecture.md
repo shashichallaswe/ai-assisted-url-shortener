@@ -50,11 +50,11 @@ Dependencies point one direction only, per the `architecture` skill: a route nev
 | 1 | Parse `Authorization: Bearer <key>`; reject a missing or malformed header | `routes` | `401` |
 | 2 | SHA-256 the presented key, look it up by `api_keys.key_hash`; reject if absent or `revoked_at IS NOT NULL` | `security/auth` | `401` |
 | 3 | Increment and check `rl:create:<apiKeyId>:<window>` | `security/rateLimit` | `429` + `Retry-After` |
-| 4 | Validate body shape `{ originalUrl, expiresAt? }` with Zod | `routes` | `400` with field-level `details` |
+| 4 | Validate body shape `{ originalUrl, expiresAt?, customAlias? }` with Zod | `routes` | `400` with field-level `details` |
 | 5 | Apply the URL policy (section 4) | `security/urlPolicy` | `400` |
 | 6 | Reject `expiresAt` at or before now | `services/urls` | `400` |
 | 7 | If `Idempotency-Key` is present, fingerprint the canonical body (section 6) | `services/urls` | — |
-| 8 | Transaction: reserve the idempotency key, generate a code, insert the row | `repos` | `409` on key reuse with a different body |
+| 8 | Transaction: reserve the idempotency key, insert a generated code or the caller-supplied alias | `repos` | `409` on key reuse with a different body, or on alias collision |
 | 9 | Respond `201` with `{ code, shortUrl, originalUrl, expiresAt }` and a `Location` header | `routes` | — |
 
 Two deliberate choices in this flow:
@@ -75,13 +75,15 @@ retries: at most 3, then respond 503 and log at error
 
 At 10 million stored links the chance of a single insert colliding is about 3 in a million, so three attempts is generous. Exhausting them means the assumption about key-space occupancy is wrong, and the correct response is to say so loudly rather than to loop.
 
-**This is a human sign-off area.** The reviewer is confirming the entropy, the retry bound, and the decision to let the database arbitrate uniqueness.
+Custom aliases occupy the same `urls.code` column and the same unique index. The caller supplies the identifier, so a unique violation is not retried: it is `409 alias_conflict`. Two concurrent POSTs with the same alias serialize on `urls_code_key`; one commits `201`, the other is `409`. Soft-deleted rows still occupy the identifier.
+
+**This is a human sign-off area.** The reviewer is confirming the entropy, the retry bound, database-arbitrated uniqueness, and the alias 409 path (no overwrite, no substitute code).
 
 ## 3. Redirect flow
 
 `GET /:code` — public, `302` on success. This is the hot path and it is sacred: nothing non-essential may block it.
 
-1. **Shape check.** The code must be exactly 7 characters within the base62 charset. Anything else is `404` immediately, with no Redis call and no query. Malformed input must not become database load.
+1. **Shape check.** The identifier must be 4–32 characters of `[0-9A-Za-z_-]` and must not be reserved. Anything else is `404` immediately, with no Redis call and no query. Malformed input must not become database load. Generated codes remain 7-character base62.
 2. **Rate limit.** Increment `rl:redirect:<ipHash>:<window>`. If Redis is unavailable this fails open and logs; a rate limiter that takes the site down with it is worse than no rate limiter.
 3. **Cache lookup.** `GET url:v1:<code>`.
    - Entry found → step 5.
@@ -222,7 +224,7 @@ The mapping itself. Retained indefinitely; soft-deleted rows stay for audit and 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | `bigint` | primary key, generated always as identity |
-| `code` | `text` | not null, **unique**; 7 base62 characters |
+| `code` | `text` | not null, **unique**; 4–32 of `[0-9A-Za-z_-]`. Generated values are still 7-character base62 |
 | `destination_url` | `text` | not null |
 | `created_by` | `uuid` | not null, references `api_keys(id)` |
 | `created_at` | `timestamptz` | not null, default `now()` |
@@ -232,7 +234,8 @@ The mapping itself. Retained indefinitely; soft-deleted rows stay for audit and 
 Constraints:
 
 - `unique (code)` — the collision guard the generator relies on
-- `check (char_length(code) = 7)`
+- `check (char_length(code) between 4 and 32)`
+- `check (code ~ '^[0-9A-Za-z_-]+$')`
 - `check (destination_url like 'https://%')` — a backstop under the service-layer policy, not a replacement for it
 - `check (expires_at is null or expires_at > created_at)`
 
@@ -320,7 +323,7 @@ Recorded to show the design accommodates growth. **None of this is built, and bu
 
 Per AGENTS.md section 9, these areas need the reviewer to confirm the design and not merely the diff:
 
-1. **Short-code uniqueness and collision handling** — section 2: 7 characters of base62, database-arbitrated uniqueness, three retries, then `503`.
+1. **Short-code uniqueness and collision handling** — section 2: 7 characters of base62 for generated codes, aliases of 4–32 in the same unique index, database-arbitrated uniqueness, three retries then `503` for generated collisions, `409` for alias collisions.
 2. **Cache invalidation** — section 5: delete commits before invalidating, a failed invalidation fails the request, and expiry relies on a capped TTL plus a re-check on every hit.
 3. **Hashed credential and hashed IP storage** — section 6: SHA-256 key hashes with a loggable prefix, daily-salted IP hashes, and the absence of a click retention policy.
 4. **Who may read analytics** — section 3, stats read path: any valid API key may read stats for any existing code, with no per-key ownership scoping in v1.

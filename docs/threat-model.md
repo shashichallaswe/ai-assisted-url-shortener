@@ -44,7 +44,7 @@ Revocation is `revoked_at IS NOT NULL`. Revoked rows are kept as audit evidence.
 
 ## Reserved codes
 
-`health`, `ready`, `api`, `openapi`, and `favicon` are never minted and never resolved as codes. `openapi` and `favicon` are seven characters of base62, so a naive generator could collide with a real route. Create skips them; redirect 404s them without a database lookup.
+`health`, `ready`, `api`, `openapi`, and `favicon` are never minted, never accepted as `customAlias`, and never resolved as codes. `openapi` and `favicon` are seven characters of base62, so a naive generator could collide with a real route. Aliases are 4–32 characters, so `health` and `ready` would otherwise be legal identifiers. Create rejects reserved aliases with `400`; redirect 404s them without a database lookup.
 
 ## Logging
 
