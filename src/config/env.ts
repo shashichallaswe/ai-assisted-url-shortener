@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  RATE_LIMIT_CREATE_MAX,
+  RATE_LIMIT_REDIRECT_MAX,
+  RATE_LIMIT_WINDOW_SECONDS,
+} from '../lib/constants.js';
 
 const httpUrl = z.url().refine((value) => /^https?:$/.test(new URL(value).protocol), {
   message: 'must be an http or https URL',
@@ -32,6 +37,10 @@ export const envSchema = z.object({
    * stored. Placeholder in .env.example; production must set a unique value.
    */
   CLICK_IP_SALT: z.string().min(16),
+
+  RATE_LIMIT_CREATE_MAX: z.coerce.number().int().min(1).default(RATE_LIMIT_CREATE_MAX),
+  RATE_LIMIT_REDIRECT_MAX: z.coerce.number().int().min(1).default(RATE_LIMIT_REDIRECT_MAX),
+  RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().min(1).default(RATE_LIMIT_WINDOW_SECONDS),
 });
 
 export type Env = z.infer<typeof envSchema>;

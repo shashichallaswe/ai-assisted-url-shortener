@@ -13,7 +13,7 @@
     "dev": "tsx watch src/server.ts",
     "migrate": "tsx src/db/migrate-cli.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . && prettier --check .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -22,3 +22,21 @@ export const STATS_DEFAULT_DAYS = 30;
 
 /** Upper bound on the `days` query parameter. */
 export const STATS_MAX_DAYS = 90;
+
+/** Default create cap: 30 POSTs per API key per minute. */
+export const RATE_LIMIT_CREATE_MAX = 30;
+
+/** Default redirect cap: 120 GETs per hashed IP per minute. */
+export const RATE_LIMIT_REDIRECT_MAX = 120;
+
+/** Fixed window length for both rate-limit buckets. */
+export const RATE_LIMIT_WINDOW_SECONDS = 60;
+
+/**
+ * When `buildApp` is not given explicit limits (almost always tests), use a
+ * ceiling the suite cannot trip. Production always injects env values from
+ * `server.ts`.
+ */
+export const RATE_LIMIT_IN_PROCESS_MAX = 10_000;
+
+export const RATE_LIMIT_IN_PROCESS_IP_PEPPER = 'test-rate-limit-pepper';
