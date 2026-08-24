@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { hashIp } from '../src/lib/ip-hash.js';
+import { hashIp } from '../ip-hash.js';
 
 const salt = 'test-click-salt-16';
 const ip = '203.0.113.50';

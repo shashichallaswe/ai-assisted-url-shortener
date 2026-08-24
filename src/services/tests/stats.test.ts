@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { STATS_DEFAULT_DAYS, STATS_MAX_DAYS } from '../src/lib/constants.js';
-import { parseStatsDays, statsWindowStart } from '../src/services/stats.js';
+import { STATS_DEFAULT_DAYS, STATS_MAX_DAYS } from '../../lib/constants.js';
+import { parseStatsDays, statsWindowStart } from '../stats.js';
 
 describe('parseStatsDays', () => {
   it('defaults to 30 days when the query is omitted', () => {

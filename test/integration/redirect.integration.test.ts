@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { MemoryUrlCache } from '../src/cache/memory-url-cache.js';
-import { buildApp } from '../src/app.js';
-import { migrate } from '../src/db/migrate.js';
-import { insertApiKey } from './helpers/api-keys.js';
-import { createTestPool, isDatabaseAvailable } from './helpers/database.js';
+import { MemoryUrlCache } from '../../src/cache/memory-url-cache.js';
+import { buildApp } from '../../src/app.js';
+import { migrate } from '../../src/db/migrate.js';
+import { insertApiKey } from '../helpers/api-keys.js';
+import { createTestPool, isDatabaseAvailable } from '../helpers/database.js';
 
 const databaseAvailable = await isDatabaseAvailable();
 

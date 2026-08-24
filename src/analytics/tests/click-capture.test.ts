@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ClickCapture } from '../src/analytics/click-capture.js';
-import { MemoryClickCounters } from '../src/cache/memory-click-counters.js';
-import { CLICK_TEXT_LIMIT } from '../src/lib/constants.js';
-import { hashIp } from '../src/lib/ip-hash.js';
-import type { DurableClick } from '../src/repos/click-events.js';
+import { ClickCapture } from '../click-capture.js';
+import { MemoryClickCounters } from '../../cache/memory-click-counters.js';
+import { CLICK_TEXT_LIMIT } from '../../lib/constants.js';
+import { hashIp } from '../../lib/ip-hash.js';
+import type { DurableClick } from '../../repos/click-events.js';
 
 const salt = 'test-click-salt-16';
 const at = new Date('2026-08-23T12:00:00.000Z');

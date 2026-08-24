@@ -1,14 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ClickCapture } from '../src/analytics/click-capture.js';
-import { MemoryClickCounters } from '../src/cache/memory-click-counters.js';
-import { buildApp } from '../src/app.js';
-import { migrate } from '../src/db/migrate.js';
-import { hashIp } from '../src/lib/ip-hash.js';
-import { insertClickEvents, type DurableClick } from '../src/repos/click-events.js';
-import { insertApiKey } from './helpers/api-keys.js';
-import { createTestPool, isDatabaseAvailable } from './helpers/database.js';
+import { ClickCapture } from '../../src/analytics/click-capture.js';
+import { MemoryClickCounters } from '../../src/cache/memory-click-counters.js';
+import { buildApp } from '../../src/app.js';
+import { migrate } from '../../src/db/migrate.js';
+import { hashIp } from '../../src/lib/ip-hash.js';
+import { insertClickEvents, type DurableClick } from '../../src/repos/click-events.js';
+import { insertApiKey } from '../helpers/api-keys.js';
+import { createTestPool, isDatabaseAvailable } from '../helpers/database.js';
 
 const databaseAvailable = await isDatabaseAvailable();
 

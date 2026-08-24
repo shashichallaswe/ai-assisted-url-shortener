@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { envSchema, parseEnv } from '../src/config/env.js';
+import { envSchema, parseEnv } from '../env.js';
 
 const validEnv = {
   BASE_URL: 'http://localhost:3000',
@@ -44,7 +44,7 @@ describe('parseEnv', () => {
 
 describe('.env.example', () => {
   it('documents every variable the schema knows about', () => {
-    const contents = readFileSync(new URL('../.env.example', import.meta.url), 'utf8');
+    const contents = readFileSync(new URL('../../../.env.example', import.meta.url), 'utf8');
     const documented = contents
       .split('\n')
       .map((line) => line.trim())
@@ -57,7 +57,7 @@ describe('.env.example', () => {
   });
 
   it('holds placeholders only, never a real-looking credential', () => {
-    const contents = readFileSync(new URL('../.env.example', import.meta.url), 'utf8');
+    const contents = readFileSync(new URL('../../../.env.example', import.meta.url), 'utf8');
 
     expect(contents).not.toMatch(/-----BEGIN [A-Z ]*PRIVATE KEY-----/);
     expect(contents).not.toMatch(/\bgh[pousr]_[A-Za-z0-9]{30,}/);

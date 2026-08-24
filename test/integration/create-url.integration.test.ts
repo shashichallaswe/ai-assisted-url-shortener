@@ -1,10 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { buildApp, type BuildAppOptions } from '../src/app.js';
-import { migrate } from '../src/db/migrate.js';
-import { insertApiKey } from './helpers/api-keys.js';
-import { createTestPool, isDatabaseAvailable } from './helpers/database.js';
+import { buildApp, type BuildAppOptions } from '../../src/app.js';
+import { migrate } from '../../src/db/migrate.js';
+import { insertApiKey } from '../helpers/api-keys.js';
+import { createTestPool, isDatabaseAvailable } from '../helpers/database.js';
 
 const databaseAvailable = await isDatabaseAvailable();
 
