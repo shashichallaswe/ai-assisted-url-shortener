@@ -13,7 +13,11 @@ export interface UrlCache {
   get(code: string): Promise<CachedUrl | 'negative' | null>;
   set(code: string, value: CachedUrl, ttlSeconds: number): Promise<void>;
   setNegative(code: string, ttlSeconds: number): Promise<void>;
-  del(code: string): Promise<void>;
+  /**
+   * Removes live and negative entries. Returns false only when the store
+   * itself failed; a missing key is success.
+   */
+  del(code: string): Promise<boolean>;
 }
 
 export function toCachedUrl(row: {

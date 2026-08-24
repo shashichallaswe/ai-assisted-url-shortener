@@ -1,7 +1,7 @@
 import { fromCachedUrl, toCachedUrl, type UrlCache } from '../cache/url-cache.js';
 import { cacheTtlSeconds, NEGATIVE_CACHE_TTL_SECONDS } from '../lib/cache-ttl.js';
 import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
-import { notFound } from '../lib/errors/http-error.js';
+import { cacheInvalidationFailed, notFound } from '../lib/errors/http-error.js';
 import { redirectDecision } from '../lib/redirect-decision.js';
 import { publicShortUrl } from '../lib/public-url.js';
 import type { UrlRecord } from '../repos/urls.js';
@@ -97,5 +97,11 @@ export async function getUrlMetadata(
 }
 
 export async function invalidateUrlCache(cache: UrlCache, code: string): Promise<void> {
-  await cache.del(code);
+  if (await cache.del(code)) {
+    return;
+  }
+  if (await cache.del(code)) {
+    return;
+  }
+  throw cacheInvalidationFailed();
 }

@@ -49,6 +49,23 @@ export async function findUrlById(db: Pool | PoolClient, id: string): Promise<Ur
   return row === undefined ? null : mapUrl(row);
 }
 
+export async function markUrlDeleted(
+  db: Pool | PoolClient,
+  code: string,
+  deletedAt: Date,
+): Promise<UrlRecord | null> {
+  const { rows } = await db.query<UrlRow>(
+    `update urls
+        set deleted_at = $2
+      where code = $1
+        and deleted_at is null
+     returning id, code, destination_url, created_at, expires_at, deleted_at`,
+    [code, deletedAt],
+  );
+  const row = rows[0];
+  return row === undefined ? null : mapUrl(row);
+}
+
 export async function findUrlByCode(
   db: Pool | PoolClient,
   code: string,

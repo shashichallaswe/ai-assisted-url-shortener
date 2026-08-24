@@ -2,7 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { withTransaction } from '../db/transaction.js';
 import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
-import { HttpError } from '../lib/errors/http-error.js';
+import type { UrlCache } from '../cache/url-cache.js';
+import { HttpError, notFound } from '../lib/errors/http-error.js';
 import { isUniqueViolation } from '../lib/errors/pg.js';
 import { publicShortUrl } from '../lib/public-url.js';
 import type { ApiKeyRecord } from '../repos/api-keys.js';
@@ -13,7 +14,14 @@ import {
   insertIdempotencyReservation,
   type IdempotencyRecord,
 } from '../repos/idempotency.js';
-import { findUrlById, insertUrl, type UrlRecord } from '../repos/urls.js';
+import {
+  findUrlByCode,
+  findUrlById,
+  insertUrl,
+  markUrlDeleted,
+  type UrlRecord,
+} from '../repos/urls.js';
+import { invalidateUrlCache } from './redirect.js';
 import { inspectDestination } from '../security/url-policy.js';
 
 const CODE_ATTEMPTS = 3;
@@ -165,6 +173,26 @@ async function replayExisting(
     throw new HttpError(500, 'internal_error', 'Internal server error');
   }
   return toCreated(url, baseUrl);
+}
+
+export interface DeleteUrlDeps {
+  pool: Pool;
+  cache: UrlCache;
+  clock: () => Date;
+}
+
+export async function deleteUrl(deps: DeleteUrlDeps, code: string): Promise<void> {
+  if (isReservedCode(code) || !isWellFormedCode(code)) {
+    throw notFound();
+  }
+  const row = await findUrlByCode(deps.pool, code);
+  if (row === null) {
+    throw notFound();
+  }
+  if (row.deletedAt === null) {
+    await markUrlDeleted(deps.pool, code, deps.clock());
+  }
+  await invalidateUrlCache(deps.cache, code);
 }
 
 function requestFingerprint(originalUrl: string, expiresAt: Date | undefined): Buffer {
