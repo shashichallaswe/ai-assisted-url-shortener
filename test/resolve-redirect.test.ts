@@ -91,6 +91,16 @@ describe('resolveRedirect', () => {
     expect(cache.sets).toBe(0);
   });
 
+  it('returns 404 when a stored destination would fail URL policy', async () => {
+    const row = liveRow({ destinationUrl: 'javascript:alert(1)' });
+    const findByCode = vi.fn().mockResolvedValue(row);
+
+    await expect(
+      resolveRedirect({ clock: () => now, cache: new MemoryUrlCache(), findByCode }, row.code),
+    ).rejects.toMatchObject({ statusCode: 404 });
+    expect(findByCode).toHaveBeenCalledTimes(1);
+  });
+
   it('returns 404 for a soft-deleted mapping', async () => {
     const row = liveRow({ deletedAt: now });
     const findByCode = vi.fn().mockResolvedValue(row);

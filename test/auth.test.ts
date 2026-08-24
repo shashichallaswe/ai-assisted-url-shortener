@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { hashApiKey, parseBearerToken } from '../src/security/auth.js';
+import { hashApiKey, hashesMatch, parseBearerToken } from '../src/security/auth.js';
 import { HttpError } from '../src/lib/http-error.js';
 
 describe('parseBearerToken', () => {
@@ -40,5 +40,16 @@ describe('hashApiKey', () => {
   it('is deterministic and sensitive to the input', () => {
     expect(hashApiKey('a').equals(hashApiKey('a'))).toBe(true);
     expect(hashApiKey('a').equals(hashApiKey('b'))).toBe(false);
+  });
+});
+
+describe('hashesMatch', () => {
+  it('returns true only for equal hashes of equal length', () => {
+    const left = hashApiKey('secret-key');
+
+    expect(hashesMatch(left, hashApiKey('secret-key'))).toBe(true);
+    expect(hashesMatch(left, hashApiKey('other-key'))).toBe(false);
+    expect(hashesMatch(left, Buffer.alloc(32))).toBe(false);
+    expect(hashesMatch(left, Buffer.alloc(16))).toBe(false);
   });
 });

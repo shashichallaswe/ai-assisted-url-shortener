@@ -76,7 +76,8 @@ describe.skipIf(!databaseAvailable)('GET /:code', () => {
   });
 
   it('returns 404 for an unknown well-formed code', async () => {
-    const response = await app.inject({ method: 'GET', url: '/Ab3Xy7Z' });
+    await pool.query(`delete from urls where code = $1`, ['NoHit01']);
+    const response = await app.inject({ method: 'GET', url: '/NoHit01' });
     expect(response.statusCode).toBe(404);
     expect(response.headers.location).toBeUndefined();
   });
