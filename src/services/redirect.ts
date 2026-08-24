@@ -12,7 +12,16 @@ export interface ResolveRedirectDeps {
   findByCode: (code: string) => Promise<UrlRecord | null>;
 }
 
-export async function resolveRedirect(deps: ResolveRedirectDeps, code: string): Promise<string> {
+export interface RedirectHit {
+  destinationUrl: string;
+  urlId: string;
+  code: string;
+}
+
+export async function resolveRedirect(
+  deps: ResolveRedirectDeps,
+  code: string,
+): Promise<RedirectHit> {
   if (isReservedCode(code) || !isWellFormedCode(code)) {
     throw notFound();
   }
@@ -27,7 +36,7 @@ export async function resolveRedirect(deps: ResolveRedirectDeps, code: string): 
     if (!decision.ok) {
       throw notFound();
     }
-    return decision.destinationUrl;
+    return { destinationUrl: decision.destinationUrl, urlId: cached.id, code };
   }
 
   const row = await deps.findByCode(code);
@@ -45,7 +54,7 @@ export async function resolveRedirect(deps: ResolveRedirectDeps, code: string): 
   if (ttl !== null) {
     await deps.cache.set(code, toCachedUrl(row), ttl);
   }
-  return decision.destinationUrl;
+  return { destinationUrl: decision.destinationUrl, urlId: row.id, code };
 }
 
 export interface UrlMetadata {

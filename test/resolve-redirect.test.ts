@@ -43,9 +43,13 @@ describe('resolveRedirect', () => {
     const findByCode = vi.fn().mockResolvedValue(row);
     const cache = new MemoryUrlCache();
 
-    await expect(resolveRedirect({ clock: () => now, cache, findByCode }, row.code)).resolves.toBe(
-      row.destinationUrl,
-    );
+    await expect(
+      resolveRedirect({ clock: () => now, cache, findByCode }, row.code),
+    ).resolves.toEqual({
+      destinationUrl: row.destinationUrl,
+      urlId: row.id,
+      code: row.code,
+    });
     expect(findByCode).toHaveBeenCalledTimes(1);
     expect(cache.sets).toBe(1);
   });
@@ -57,7 +61,10 @@ describe('resolveRedirect', () => {
     const deps = { clock: () => now, cache, findByCode };
 
     await resolveRedirect(deps, row.code);
-    await expect(resolveRedirect(deps, row.code)).resolves.toBe(row.destinationUrl);
+    await expect(resolveRedirect(deps, row.code)).resolves.toMatchObject({
+      destinationUrl: row.destinationUrl,
+      urlId: row.id,
+    });
     expect(findByCode).toHaveBeenCalledTimes(1);
     expect(cache.hits).toBe(1);
   });

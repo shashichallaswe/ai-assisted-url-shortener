@@ -26,6 +26,12 @@ export const envSchema = z.object({
     .refine((value) => value === undefined || value.length >= 16, {
       message: 'must be at least 16 characters when set',
     }),
+
+  /**
+   * Pepper mixed into click IP hashes with the UTC date. Raw IPs are never
+   * stored. Placeholder in .env.example; production must set a unique value.
+   */
+  CLICK_IP_SALT: z.string().min(16),
 });
 
 export type Env = z.infer<typeof envSchema>;

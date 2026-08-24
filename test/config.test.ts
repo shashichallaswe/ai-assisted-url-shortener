@@ -6,6 +6,7 @@ const validEnv = {
   BASE_URL: 'http://localhost:3000',
   DATABASE_URL: 'postgres://shortener:shortener@localhost:5432/shortener',
   REDIS_URL: 'redis://localhost:6379',
+  CLICK_IP_SALT: 'change-me-in-local-env',
 };
 
 describe('parseEnv', () => {
