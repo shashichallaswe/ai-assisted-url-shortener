@@ -142,8 +142,15 @@ describe.skipIf(!databaseAvailable)('POST /api/v1/urls', () => {
       'http://example.com',
       'javascript:alert(1)',
       'data:text/html,hi',
+      'file:///etc/passwd',
+      'ftp://example.com',
+      '/relative',
+      'not-a-url',
       'https://localhost/',
+      'https://127.0.0.1/',
       'https://10.0.0.1/',
+      'https://192.168.0.1/',
+      'https://169.254.1.1/',
     ])('returns 400 for rejected destination %s', async (originalUrl) => {
       const { rawKey } = await insertApiKey(pool);
       const response = await post(rawKey, { originalUrl });
@@ -264,6 +271,33 @@ describe.skipIf(!databaseAvailable)('POST /api/v1/urls', () => {
   });
 
   describe('code collisions', () => {
+    it('skips a reserved generated code and persists the next one', async () => {
+      const { rawKey } = await insertApiKey(pool);
+      await pool.query(`delete from urls where code = any($1::text[])`, [['openapi', 'SkipR01']]);
+      const generateCode = vi.fn().mockReturnValueOnce('openapi').mockReturnValueOnce('SkipR01');
+      const skipping = await makeApp({ generateCode });
+
+      try {
+        const response = await post(
+          rawKey,
+          { originalUrl: 'https://example.com/reserved' },
+          {},
+          skipping,
+        );
+
+        expect(response.statusCode).toBe(201);
+        expect(response.json<CreatedBody>().code).toBe('SkipR01');
+        expect(generateCode).toHaveBeenCalledTimes(2);
+
+        const { rows } = await pool.query<{ n: number }>(
+          `select count(*)::int as n from urls where code = 'openapi'`,
+        );
+        expect(rows[0]?.n).toBe(0);
+      } finally {
+        await skipping.close();
+      }
+    });
+
     it('retries transparently when the generated code is already taken', async () => {
       const { id, rawKey } = await insertApiKey(pool);
       await pool.query(`delete from urls where code = any($1::text[])`, [['AAAAAAA', 'BBBBBBB']]);

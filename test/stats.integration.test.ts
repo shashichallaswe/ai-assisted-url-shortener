@@ -86,8 +86,15 @@ describe.skipIf(!databaseAvailable)('GET /api/v1/urls/:code/stats', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it('returns 401 for a revoked key', async () => {
+    const { code } = await createLink();
+    const { rawKey: revokedKey } = await insertApiKey(pool, { revoked: true });
+    const response = await stats(code, { authorization: `Bearer ${revokedKey}` });
+    expect(response.statusCode).toBe(401);
+  });
+
   it('returns 404 for an unknown code', async () => {
-    const response = await stats('Ab3Xy7Z', { authorization: `Bearer ${rawKey}` });
+    const response = await stats('NoSuch1', { authorization: `Bearer ${rawKey}` });
     expect(response.statusCode).toBe(404);
   });
 
@@ -150,11 +157,19 @@ describe.skipIf(!databaseAvailable)('GET /api/v1/urls/:code/stats', () => {
 
   it('uses the (url_id, clicked_at) index for the windowed aggregate', async () => {
     const { urlId } = await createLink();
-    const { rows } = await pool.query<{ 'QUERY PLAN': string }>(
-      `explain ${CLICK_STATS_BY_DAY_SQL}`,
-      [urlId, new Date('2020-01-01T00:00:00.000Z')],
-    );
-    const plan = rows.map((row) => row['QUERY PLAN']).join('\n');
-    expect(plan).toMatch(/click_events_url_id_clicked_at_idx/i);
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      await client.query('set local enable_seqscan = off');
+      const { rows } = await client.query<{ 'QUERY PLAN': string }>(
+        `explain ${CLICK_STATS_BY_DAY_SQL}`,
+        [urlId, new Date('2020-01-01T00:00:00.000Z')],
+      );
+      const plan = rows.map((row) => row['QUERY PLAN']).join('\n');
+      expect(plan).toMatch(/click_events_url_id_clicked_at_idx/i);
+    } finally {
+      await client.query('rollback');
+      client.release();
+    }
   });
 });

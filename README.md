@@ -126,5 +126,6 @@ Invalid environment: DATABASE_URL: Invalid input: expected string, received unde
 | --- | --- |
 | [docs/assumptions.md](docs/assumptions.md) | Requirements, resolved ambiguities, v1 API surface, non-goals |
 | [docs/architecture.md](docs/architecture.md) | Components, request flows, data model, Redis contract, scale-up path |
+| [docs/threat-model.md](docs/threat-model.md) | Destination allow/deny rationale and API-key authentication path |
 | [AGENTS.md](AGENTS.md) | How work is picked up, reviewed, and merged |
 | [docs/ai-traceability.md](docs/ai-traceability.md) | What AI generated, what was edited, what was rejected |

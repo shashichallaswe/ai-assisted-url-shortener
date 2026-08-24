@@ -7,6 +7,18 @@ const ALPHABET_SIZE = CODE_ALPHABET.length;
 const REJECTION_CEILING = 256 - (256 % ALPHABET_SIZE);
 
 export function generateShortCode(): string {
+  // A 7-character base62 draw can theoretically equal a reserved path
+  // (`openapi`, `favicon`). Retry until it does not; those two strings in
+  // 62^7 possibilities are not a retry-budget problem. Database uniqueness
+  // is capped separately in createUrl.
+  let code = generateRawCode();
+  while (isReservedCode(code)) {
+    code = generateRawCode();
+  }
+  return code;
+}
+
+function generateRawCode(): string {
   const chars: string[] = [];
 
   while (chars.length < CODE_LENGTH) {

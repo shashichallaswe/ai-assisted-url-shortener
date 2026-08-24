@@ -101,9 +101,10 @@ describe.skipIf(!databaseAvailable)('click capture on redirect', () => {
 
   it('does not record a click on 404', async () => {
     const before = await pool.query<{ n: string }>('select count(*)::text as n from click_events');
+    await pool.query(`delete from urls where code = $1`, ['NoHit01']);
     const response = await app.inject({
       method: 'GET',
-      url: '/Ab3Xy7Z',
+      url: '/NoHit01',
       remoteAddress: VISITOR_IP,
     });
     expect(response.statusCode).toBe(404);
