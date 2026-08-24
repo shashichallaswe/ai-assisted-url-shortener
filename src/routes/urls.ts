@@ -2,6 +2,7 @@ import type { FastifyPluginCallback } from 'fastify';
 import { z } from 'zod';
 import { firstHeader } from '../lib/headers.js';
 import { HttpError } from '../lib/http-error.js';
+import { selectClickStats } from '../repos/click-events.js';
 import { findUrlByCode } from '../repos/urls.js';
 import { authenticateApiKey, parseBearerToken } from '../security/auth.js';
 import { getUrlMetadata } from '../services/redirect.js';
@@ -56,18 +57,18 @@ export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
   app.get('/urls/:code/stats', async (request, reply) => {
     const rawKey = parseBearerToken(firstHeader(request.headers.authorization));
     await authenticateApiKey(app.db, rawKey);
-    const { code } = request.params as { code: string };
-    const days = parseStatsDays(
-      typeof (request.query as { days?: unknown }).days === 'string'
-        ? (request.query as { days: string }).days
-        : undefined,
+
+    const { days } = request.query as { days?: unknown };
+    const stats = await getUrlStats(
+      {
+        clock: app.appConfig.clock,
+        findByCode: (code) => findUrlByCode(app.db, code),
+        loadStats: (urlId, since) => selectClickStats(app.db, urlId, since),
+      },
+      (request.params as { code: string }).code,
+      parseStatsDays(typeof days === 'string' ? days : undefined),
     );
-    const body = await getUrlStats(
-      { pool: app.db, clock: app.appConfig.clock },
-      code,
-      days,
-    );
-    return reply.status(200).send(body);
+    return reply.status(200).send(stats);
   });
   done();
 };

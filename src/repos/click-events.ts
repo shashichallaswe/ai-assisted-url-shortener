@@ -59,9 +59,10 @@ export interface ClickDayCount {
   clicks: number;
 }
 
-export interface ClickStatsRow {
+export interface ClickStats {
   totalClicks: number;
   lastClickedAt: Date | null;
+  /** Sparse: days with no clicks are absent rather than zero-filled. */
   clicksByDay: ClickDayCount[];
 }
 
@@ -69,7 +70,7 @@ export async function selectClickStats(
   db: Pool | PoolClient,
   urlId: string,
   since: Date,
-): Promise<ClickStatsRow> {
+): Promise<ClickStats> {
   const [summary, byDay] = await Promise.all([
     db.query<{ total_clicks: number; last_clicked_at: Date | null }>(CLICK_STATS_SUMMARY_SQL, [
       urlId,
