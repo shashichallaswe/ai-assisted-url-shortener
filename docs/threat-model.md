@@ -48,7 +48,9 @@ Revocation is `revoked_at IS NOT NULL`. Revoked rows are kept as audit evidence.
 
 ## Logging
 
-`Authorization` and `Cookie` are removed from log events, not masked. Request serializers omit the client IP. Raw keys and raw IPs are forbidden in log output by `AGENTS.md`.
+`Authorization` and `Cookie` are removed from log events, not masked. Request serializers omit the client IP. Each request logs method, path, status, duration, and a request id (`x-request-id` inbound is honoured when well-formed). Raw keys and raw IPs are forbidden in log output by `AGENTS.md`.
+
+**Human sign-off for #16:** confirm that no secret, API key, or raw client address reaches logs.
 
 ## Residual risks this story does not close
 
