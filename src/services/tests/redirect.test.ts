@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { MemoryUrlCache } from '../../src/cache/memory-url-cache.js';
-import { HttpError } from '../../src/lib/errors/http-error.js';
-import type { UrlRecord } from '../../src/repos/urls.js';
-import { resolveRedirect } from '../../src/services/redirect.js';
+import { MemoryUrlCache } from '../../cache/memory-url-cache.js';
+import { HttpError } from '../../lib/errors/http-error.js';
+import type { UrlRecord } from '../../repos/urls.js';
+import { resolveRedirect } from '../redirect.js';
 
 const now = new Date('2026-08-23T12:00:00.000Z');
 

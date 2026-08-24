@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loggerOptions, serializeReply, serializeRequest } from '../../src/observability/logger.js';
+import { loggerOptions, serializeReply, serializeRequest } from '../logger.js';
 
 describe('log serializers', () => {
   it('omits the client IP address, which AGENTS.md forbids logging raw', () => {

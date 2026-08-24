@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { redirectDecision } from '../../src/lib/redirect-decision.js';
+import { redirectDecision } from '../redirect-decision.js';
 
 describe('redirectDecision', () => {
   const now = new Date('2026-08-23T12:00:00.000Z');

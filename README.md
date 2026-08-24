@@ -102,12 +102,11 @@ src/
   db/                pool, migration runner, migration discovery
   observability/     log serializers
   lib/               pure helpers; errors/ holds HTTP, Postgres, and describe helpers
+  **/tests/          unit tests next to the module they cover
 migrations/          numbered SQL, applied in order
 test/
   helpers/           shared fixtures
-  lib/ security/ …   unit tests, folders match src/
   integration/       HTTP + PostgreSQL (skipped if the database is down)
-  db/                migration runner (also needs PostgreSQL)
 openapi.yaml         HTTP contract
 ```
 

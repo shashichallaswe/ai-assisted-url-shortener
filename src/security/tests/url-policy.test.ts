@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inspectDestination } from '../../src/security/url-policy.js';
+import { inspectDestination } from '../url-policy.js';
 
 describe('inspectDestination', () => {
   it('accepts a public https URL and returns a canonical href', () => {
