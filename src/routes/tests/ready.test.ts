@@ -15,8 +15,8 @@ describe('GET /ready', () => {
   it('returns 200 when both dependencies report ok', async () => {
     app = await buildApp({
       logger: false,
-      checkPostgres: async () => undefined,
-      checkRedis: async () => undefined,
+      checkPostgres: () => Promise.resolve(),
+      checkRedis: () => Promise.resolve(),
     });
     await app.ready();
 
@@ -28,10 +28,8 @@ describe('GET /ready', () => {
   it('returns 503 naming postgres when that check fails', async () => {
     app = await buildApp({
       logger: false,
-      checkPostgres: async () => {
-        throw new Error('ECONNREFUSED');
-      },
-      checkRedis: async () => undefined,
+      checkPostgres: () => Promise.reject(new Error('ECONNREFUSED')),
+      checkRedis: () => Promise.resolve(),
     });
     await app.ready();
 
@@ -43,10 +41,8 @@ describe('GET /ready', () => {
   it('returns 503 naming redis when that check fails', async () => {
     app = await buildApp({
       logger: false,
-      checkPostgres: async () => undefined,
-      checkRedis: async () => {
-        throw new Error('NOAUTH');
-      },
+      checkPostgres: () => Promise.resolve(),
+      checkRedis: () => Promise.reject(new Error('NOAUTH')),
     });
     await app.ready();
 
@@ -58,9 +54,7 @@ describe('GET /ready', () => {
   it('does not change /health when a dependency is down', async () => {
     app = await buildApp({
       logger: false,
-      checkPostgres: async () => {
-        throw new Error('down');
-      },
+      checkPostgres: () => Promise.reject(new Error('down')),
     });
     await app.ready();
 

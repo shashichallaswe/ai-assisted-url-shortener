@@ -1,81 +1,85 @@
 # ai-assisted-url-shortener
 
-Production-minded URL shortener prototype demonstrating AI-assisted engineering execution.
+Production-minded URL shortener prototype. The point of the repo is the engineering record as much as the process: assumptions first, tests before code, one story at a time, humans merge.
 
-**Status: create + redirect.** The service boots, migrates, creates short links, and redirects `GET /:code` with `302` and `Cache-Control: private, no-store`. Stats and takedown are later stories.
+**Status: v1 complete.** Create, 302 redirect, click stats, takedown, rate limits, aliases, health/ready. Not a hosted production.
 
 ## Prerequisites
 
 - Node.js 22 LTS (`node --version` should print `v22.x`)
-- Docker with Compose v2, for PostgreSQL and Redis
+- Docker with Compose v2, for PostgreSQL 16 and Redis 7
 
 ## Setup
 
-Run these in order from a clean checkout.
+From a clean checkout:
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Create your local environment file, then set API_KEY to a random
-#    16+ character secret if you want local curls to work
 cp .env.example .env
-
-# 3. Start PostgreSQL 16 and Redis 7, then wait for both to report healthy
+# Set API_KEY to at least 16 characters if you want the demo curls below to work.
 docker compose up -d
 docker compose ps
-
-# 4. Apply the database schema (safe to re-run; it applies nothing the second time)
 npm run migrate
-
-# 5. Run the quality gates
 npm run typecheck && npm run lint && npm test
-
-# 6. Start the service
 npm run dev
 ```
 
-Verify it is up:
+`npm test` is green without Docker: integration tests **skip**, they do not fail. Start Compose to run them.
+
+## Demo
+
+Requires `API_KEY` in `.env` (16+ characters; hashed into `api_keys` at boot) and `npm run dev`.
+
+Liveness (no dependency checks):
 
 ```bash
-curl -i http://localhost:3000/health
+curl -sS http://localhost:3000/health
 ```
 
-Expected: `HTTP/1.1 200 OK` and a body of `{"status":"ok","uptime":<seconds>}`.
+Expected: `{"status":"ok","uptime":<seconds>}`.
 
-Readiness (Postgres and Redis). After `docker compose stop postgres` this should be 503 naming postgres:
+Readiness (Postgres and Redis). After `docker compose stop postgres` this is `503` with `"postgres":"down"`:
 
 ```bash
-curl -i http://localhost:3000/ready
+curl -sS -i http://localhost:3000/ready
 ```
 
-Create a short link (requires `API_KEY` in `.env`, hashed into `api_keys` at boot):
+Create:
 
 ```bash
-curl -i http://localhost:3000/api/v1/urls \
+curl -sS -i http://localhost:3000/api/v1/urls \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"originalUrl":"https://example.com/a"}'
 ```
 
-Expected: `HTTP/1.1 201 Created` with `{ code, shortUrl, originalUrl, expiresAt }`. `shortUrl` is built from `BASE_URL`, not from the request `Host` header.
+Expected: `HTTP/1.1 201 Created`, JSON `{ code, shortUrl, originalUrl, expiresAt }`. `shortUrl` is built from `BASE_URL`, not from `Host`. Optional `"customAlias":"docs"` uses that string as `code` (4–32 of `[0-9A-Za-z_-]`); a collision is `409`.
 
-Follow the short link. Must be `302`, never `301`:
+Redirect. Must be **302**, never `301`:
 
 ```bash
-curl -sS -D - -o /dev/null "$BASE_URL/$CODE"
+curl -sS -D - -o /dev/null "http://localhost:3000/$CODE"
 ```
 
 Expected: `HTTP/1.1 302 Found`, `Location: https://example.com/a`, `Cache-Control: private, no-store`.
 
-Read click stats (same Bearer rule as metadata; default window last 30 UTC days):
+Stats (any valid API key; default window last 30 UTC days):
 
 ```bash
 curl -sS http://localhost:3000/api/v1/urls/$CODE/stats \
   -H "Authorization: Bearer $API_KEY"
 ```
 
-To stop the dependencies, `docker compose down`. Add `-v` to discard the database volume as well.
+Takedown:
+
+```bash
+curl -sS -i -X DELETE http://localhost:3000/api/v1/urls/$CODE \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+Expected: `204`. The next `GET /$CODE` is `404`.
+
+Stop dependencies with `docker compose down`. Add `-v` to drop the volume.
 
 ## Scripts
 
@@ -85,44 +89,40 @@ To stop the dependencies, `docker compose down`. Add `-v` to discard the databas
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm start` | Run the compiled server from `dist/` |
 | `npm run migrate` | Apply pending migrations; idempotent |
-| `npm run typecheck` | `tsc --noEmit` with strict mode |
-| `npm run lint` | ESLint with type-aware rules |
-| `npm run format` | Prettier write for TypeScript and JSON |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint plus Prettier check |
+| `npm run format` | Prettier write |
 | `npm test` | Vitest, once |
-
-## Tests and the database
-
-Tests that need PostgreSQL are **skipped, not failed**, when it is not reachable, so `npm test` is green on a machine without Docker. The run prints a line saying so. To exercise them, start Compose first — they connect using `DATABASE_URL`.
 
 ## Layout
 
 ```
 src/
-  app.ts             Fastify instance assembly
-  server.ts          process entry point
-  config/            environment schema and validation
-  routes/            HTTP only
-  services/          business rules
-  repos/             SQL
-  security/          auth and destination policy
-  db/                pool, migration runner, migration discovery
-  observability/     log serializers
-  lib/               pure helpers; errors/ holds HTTP, Postgres, and describe helpers
-  **/tests/          unit tests next to the module they cover
-migrations/          numbered SQL, applied in order
-test/
-  helpers/           shared fixtures
-  integration/       HTTP + PostgreSQL (skipped if the database is down)
-openapi.yaml         HTTP contract
+  app.ts              Fastify assembly
+  server.ts           process entry
+  config/             environment schema
+  routes/             HTTP only
+  services/           business rules
+  repos/              SQL
+  security/           auth, URL policy, rate limits
+  cache/              Redis behind interfaces
+  analytics/          click queue
+  observability/      logs, request id, readiness
+  lib/                pure helpers
+  **/tests/           unit tests next to the module
+migrations/
+test/integration/    HTTP + PostgreSQL (skip if the database is down)
+openapi.yaml
+.github/workflows/ci.yml
 ```
 
-Layering rule: dependencies point one direction only. A route never issues a query, a service never sets a status code, a repository never decides policy.
+A route never queries. A service never sets a status code. A repository never decides policy.
 
 ## Configuration
 
-Every variable the service reads is documented in `.env.example`, and a test fails if that file and `src/config/env.ts` drift apart. `.env` is git-ignored and must never be committed.
+Every variable the process reads is in `.env.example`. A test fails if that file and `src/config/env.ts` drift. `.env` is git-ignored.
 
-Invalid configuration is fatal at startup, by design:
+Invalid configuration is fatal at startup:
 
 ```
 $ env -u DATABASE_URL npm start
@@ -133,8 +133,15 @@ Invalid environment: DATABASE_URL: Invalid input: expected string, received unde
 
 | Document | Contents |
 | --- | --- |
-| [docs/assumptions.md](docs/assumptions.md) | Requirements, resolved ambiguities, v1 API surface, non-goals |
-| [docs/architecture.md](docs/architecture.md) | Components, request flows, data model, Redis contract, scale-up path |
-| [docs/threat-model.md](docs/threat-model.md) | Destination allow/deny rationale and API-key authentication path |
-| [AGENTS.md](AGENTS.md) | How work is picked up, reviewed, and merged |
-| [docs/ai-traceability.md](docs/ai-traceability.md) | What AI generated, what was edited, what was rejected |
+| [docs/assumptions.md](docs/assumptions.md) | Requirements, ambiguities, v1 API, non-goals |
+| [docs/architecture.md](docs/architecture.md) | Components, flows, schema, Redis, scale-up path |
+| [docs/threat-model.md](docs/threat-model.md) | Redirect abuse, credentials, limits, cache, analytics loss |
+| [docs/ENGINEERING_SUMMARY.md](docs/ENGINEERING_SUMMARY.md) | Close-out: rationale, trade-offs, tests, limitations |
+| [docs/scenarios/greenfield.md](docs/scenarios/greenfield.md) | How v1 was sequenced |
+| [docs/scenarios/brownfield.md](docs/scenarios/brownfield.md) | Alias impact analysis |
+| [AGENTS.md](AGENTS.md) | How work is picked up and merged |
+| [docs/ai-traceability.md](docs/ai-traceability.md) | Generated, edited, rejected per story |
+
+## CI
+
+Push and pull request run typecheck, lint, and tests on Node 22 with Postgres 16 and Redis 7. See `.github/workflows/ci.yml`.
