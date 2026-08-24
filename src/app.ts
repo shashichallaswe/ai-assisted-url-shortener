@@ -7,6 +7,11 @@ import type { UrlCache } from './cache/url-cache.js';
 import { MemoryRateLimiter } from './cache/memory-rate-limiter.js';
 import { MemoryUrlCache } from './cache/memory-url-cache.js';
 import { generateShortCode } from './lib/codes.js';
+import {
+  RATE_LIMIT_IN_PROCESS_IP_PEPPER,
+  RATE_LIMIT_IN_PROCESS_MAX,
+  RATE_LIMIT_WINDOW_SECONDS,
+} from './lib/constants.js';
 import type { RateLimitConfig, RateLimiter } from './security/rate-limit.js';
 import { insertClickEvents } from './repos/click-events.js';
 import { loggerOptions } from './observability/logger.js';
@@ -82,11 +87,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       clicks,
       rateLimiter: options.rateLimiter ?? new MemoryRateLimiter(clock),
       rateLimits: options.rateLimits ?? {
-        createMax: 10_000,
-        createWindowSeconds: 60,
-        redirectMax: 10_000,
-        redirectWindowSeconds: 60,
-        ipPepper: 'test-rate-limit-pepper',
+        createMax: RATE_LIMIT_IN_PROCESS_MAX,
+        createWindowSeconds: RATE_LIMIT_WINDOW_SECONDS,
+        redirectMax: RATE_LIMIT_IN_PROCESS_MAX,
+        redirectWindowSeconds: RATE_LIMIT_WINDOW_SECONDS,
+        ipPepper: RATE_LIMIT_IN_PROCESS_IP_PEPPER,
       },
     });
     app.addHook('onClose', async () => {
