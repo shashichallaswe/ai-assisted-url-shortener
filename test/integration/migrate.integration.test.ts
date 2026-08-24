@@ -71,7 +71,7 @@ describe.skipIf(!databaseAvailable)('migrate against PostgreSQL', () => {
   });
 
   describe('schema constraints', () => {
-    it('rejects a short code that is not seven characters', async () => {
+    it('rejects a code shorter than four characters', async () => {
       const client = await pool.connect();
 
       try {
@@ -79,9 +79,36 @@ describe.skipIf(!databaseAvailable)('migrate against PostgreSQL', () => {
         await expect(
           client.query(
             `insert into urls (code, destination_url, created_by)
-             values ('short', 'https://example.com', gen_random_uuid())`,
+             values ('abc', 'https://example.com', gen_random_uuid())`,
           ),
         ).rejects.toThrow();
+      } finally {
+        await client.query('rollback');
+        client.release();
+      }
+    });
+
+    it('accepts a four-character alias after the length check is widened', async () => {
+      const client = await pool.connect();
+
+      try {
+        await client.query('begin');
+        const key = await client.query<{ id: string }>(
+          `insert into api_keys (name, key_hash, key_prefix)
+           values ('alias-check', decode('00', 'hex'), 'deadbeef')
+           returning id`,
+        );
+        const keyId = key.rows[0]?.id;
+        if (keyId === undefined) {
+          throw new Error('expected api key');
+        }
+        await expect(
+          client.query(
+            `insert into urls (code, destination_url, created_by)
+             values ('w4x1', 'https://example.com', $1)`,
+            [keyId],
+          ),
+        ).resolves.toMatchObject({ rowCount: 1 });
       } finally {
         await client.query('rollback');
         client.release();

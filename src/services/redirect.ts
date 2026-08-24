@@ -1,6 +1,6 @@
 import { fromCachedUrl, toCachedUrl, type UrlCache } from '../cache/url-cache.js';
 import { cacheTtlSeconds, NEGATIVE_CACHE_TTL_SECONDS } from '../lib/cache-ttl.js';
-import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
+import { isPublicCode, isReservedCode } from '../lib/codes.js';
 import { cacheInvalidationFailed, notFound } from '../lib/errors/http-error.js';
 import { redirectDecision } from '../lib/redirect-decision.js';
 import { publicShortUrl } from '../lib/public-url.js';
@@ -23,7 +23,7 @@ export async function resolveRedirect(
   deps: ResolveRedirectDeps,
   code: string,
 ): Promise<RedirectHit> {
-  if (isReservedCode(code) || !isWellFormedCode(code)) {
+  if (isReservedCode(code) || !isPublicCode(code)) {
     throw notFound();
   }
 
@@ -80,7 +80,7 @@ export async function getUrlMetadata(
   deps: { baseUrl: string; findByCode: (code: string) => Promise<UrlRecord | null> },
   code: string,
 ): Promise<UrlMetadata> {
-  if (isReservedCode(code) || !isWellFormedCode(code)) {
+  if (isReservedCode(code) || !isPublicCode(code)) {
     throw notFound();
   }
   const row = await deps.findByCode(code);

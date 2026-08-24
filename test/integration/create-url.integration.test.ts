@@ -227,6 +227,90 @@ describe.skipIf(!databaseAvailable)('POST /api/v1/urls', () => {
     });
   });
 
+  describe('custom aliases', () => {
+    it('persists an optional customAlias as the public code', async () => {
+      const { rawKey } = await insertApiKey(pool);
+      await pool.query(
+        `delete from click_events where url_id in (select id from urls where code = $1)`,
+        ['docs'],
+      );
+      await pool.query(`delete from urls where code = $1`, ['docs']);
+      const response = await post(rawKey, {
+        originalUrl: VALID_URL,
+        customAlias: 'docs',
+      });
+
+      expect(response.statusCode).toBe(201);
+      const body = response.json<CreatedBody>();
+      expect(body.code).toBe('docs');
+      expect(body.shortUrl).toBe(`${BASE_URL}/docs`);
+    });
+
+    it('returns 409 when the alias collides with an existing code, without overwriting', async () => {
+      const { id, rawKey } = await insertApiKey(pool);
+      await pool.query(
+        `delete from click_events where url_id in (select id from urls where code = $1)`,
+        ['taken1'],
+      );
+      await pool.query(`delete from urls where code = $1`, ['taken1']);
+      await pool.query(`insert into urls (code, destination_url, created_by) values ($1, $2, $3)`, [
+        'taken1',
+        'https://example.com/original',
+        id,
+      ]);
+      const response = await post(rawKey, {
+        originalUrl: 'https://example.com/new',
+        customAlias: 'taken1',
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json<ErrorBody>().error.code).toBe('alias_conflict');
+
+      const { rows } = await pool.query<{ destination_url: string; n: number }>(
+        `select destination_url, count(*) over ()::int as n from urls where code = $1`,
+        ['taken1'],
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.n).toBe(1);
+      expect(rows[0]?.destination_url).toBe('https://example.com/original');
+    });
+
+    it.each(['ab', 'x'.repeat(33), 'has space', 'slash/no', 'plus+plus'])(
+      'returns 400 for invalid alias %s',
+      async (customAlias) => {
+        const { rawKey } = await insertApiKey(pool);
+        const response = await post(rawKey, { originalUrl: VALID_URL, customAlias });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.json<ErrorBody>().error.code).toBe('validation_error');
+        expect(response.json<ErrorBody>().error.details).toEqual(
+          expect.arrayContaining([expect.objectContaining({ field: 'customAlias' })]),
+        );
+      },
+    );
+
+    it.each(['health', 'ready', 'openapi', 'HEALTH'])(
+      'returns 400 for reserved alias %s',
+      async (customAlias) => {
+        const { rawKey } = await insertApiKey(pool);
+        const response = await post(rawKey, { originalUrl: VALID_URL, customAlias });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.json<ErrorBody>().error.details).toEqual(
+          expect.arrayContaining([expect.objectContaining({ field: 'customAlias' })]),
+        );
+      },
+    );
+
+    it('still generates a 7-character code when customAlias is omitted', async () => {
+      const { rawKey } = await insertApiKey(pool);
+      const response = await post(rawKey, { originalUrl: VALID_URL });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json<CreatedBody>().code).toMatch(/^[0-9A-Za-z]{7}$/);
+    });
+  });
+
   describe('idempotency', () => {
     it('replays the original 201 when the key and body match', async () => {
       const { id, rawKey } = await insertApiKey(pool);

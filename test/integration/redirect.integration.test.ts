@@ -83,9 +83,48 @@ describe.skipIf(!databaseAvailable)('GET /:code', () => {
   });
 
   it('returns 404 for a malformed code', async () => {
-    const response = await app.inject({ method: 'GET', url: '/nope' });
+    const response = await app.inject({ method: 'GET', url: '/no' });
     expect(response.statusCode).toBe(404);
     expect(response.headers.location).toBeUndefined();
+  });
+
+  async function removeCode(code: string): Promise<void> {
+    await pool.query(
+      `delete from click_events where url_id in (select id from urls where code = $1)`,
+      [code],
+    );
+    await pool.query(`delete from urls where code = $1`, [code]);
+  }
+
+  it('redirects a custom alias', async () => {
+    await removeCode('go-docs');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/urls',
+      headers: { authorization: `Bearer ${rawKey}` },
+      payload: { originalUrl: 'https://example.com/alias', customAlias: 'go-docs' },
+    });
+    expect(created.statusCode).toBe(201);
+    const response = await app.inject({ method: 'GET', url: '/go-docs' });
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toBe('https://example.com/alias');
+  });
+
+  it('still redirects a seven-character generated code inserted as a pre-alias row', async () => {
+    const { rows: keys } = await pool.query<{ id: string }>(`select id from api_keys limit 1`);
+    const keyId = keys[0]?.id;
+    if (keyId === undefined) {
+      throw new Error('expected api key');
+    }
+    await removeCode('OldCode');
+    await pool.query(`insert into urls (code, destination_url, created_by) values ($1, $2, $3)`, [
+      'OldCode',
+      'https://example.com/legacy',
+      keyId,
+    ]);
+    const response = await app.inject({ method: 'GET', url: '/OldCode' });
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toBe('https://example.com/legacy');
   });
 
   it('does not treat reserved paths as short codes', async () => {

@@ -1,4 +1,4 @@
-import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
+import { isPublicCode, isReservedCode } from '../lib/codes.js';
 import { STATS_DEFAULT_DAYS, STATS_MAX_DAYS } from '../lib/constants.js';
 import { HttpError, notFound } from '../lib/errors/http-error.js';
 import type { ClickStats } from '../repos/click-events.js';
@@ -40,7 +40,7 @@ export async function getUrlStats(
   code: string,
   days: number,
 ): Promise<UrlStats> {
-  if (isReservedCode(code) || !isWellFormedCode(code)) {
+  if (isReservedCode(code) || !isPublicCode(code)) {
     throw notFound();
   }
   const row = await deps.findByCode(code);

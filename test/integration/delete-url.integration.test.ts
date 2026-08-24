@@ -126,6 +126,37 @@ describe.skipIf(!databaseAvailable)('DELETE /api/v1/urls/:code', () => {
     expect(redirect.headers.location).toBeUndefined();
   });
 
+  it('takes down an aliased link and invalidates its cache the same way', async () => {
+    await pool.query(
+      `delete from click_events where url_id in (select id from urls where code = $1)`,
+      ['take-me'],
+    );
+    await pool.query(`delete from urls where code = $1`, ['take-me']);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/urls',
+      headers: { authorization: `Bearer ${rawKey}` },
+      payload: { originalUrl: VALID_URL, customAlias: 'take-me' },
+    });
+    expect(created.statusCode).toBe(201);
+    expect((await app.inject({ method: 'GET', url: '/take-me' })).statusCode).toBe(302);
+    expect(cache.live.has('take-me')).toBe(true);
+
+    expect(
+      (
+        await app.inject({
+          method: 'DELETE',
+          url: '/api/v1/urls/take-me',
+          headers: { authorization: `Bearer ${rawKey}` },
+        })
+      ).statusCode,
+    ).toBe(204);
+    expect(cache.live.has('take-me')).toBe(false);
+
+    const redirect = await app.inject({ method: 'GET', url: '/take-me' });
+    expect(redirect.statusCode).toBe(404);
+  });
+
   it('keeps click events queryable through stats after deletion', async () => {
     const { code, urlId } = await createLink();
     await insertClickEvents(pool, [
