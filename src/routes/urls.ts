@@ -5,6 +5,7 @@ import { HttpError } from '../lib/http-error.js';
 import { selectClickStats } from '../repos/click-events.js';
 import { findUrlByCode } from '../repos/urls.js';
 import { authenticateApiKey, parseBearerToken } from '../security/auth.js';
+import { enforceRateLimit } from '../security/rate-limit.js';
 import { getUrlMetadata } from '../services/redirect.js';
 import { getUrlStats, parseStatsDays } from '../services/stats.js';
 import { createUrl } from '../services/urls.js';
@@ -20,6 +21,15 @@ export const urlRoutes: FastifyPluginCallback = (app, _options, done) => {
   app.post('/urls', async (request, reply) => {
     const rawKey = parseBearerToken(firstHeader(request.headers.authorization));
     const apiKey = await authenticateApiKey(app.db, rawKey);
+    const { rateLimiter, rateLimits, clock } = app.appConfig;
+    await enforceRateLimit(
+      rateLimiter,
+      'create',
+      apiKey.id,
+      rateLimits.createMax,
+      rateLimits.createWindowSeconds,
+      clock(),
+    );
     const body = parseCreateUrlBody(request.body);
     const idempotencyKey = parseIdempotencyKey(firstHeader(request.headers['idempotency-key']));
 

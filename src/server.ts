@@ -1,6 +1,7 @@
 import { ClickCapture } from './analytics/click-capture.js';
 import { buildApp } from './app.js';
 import { RedisClickCounters } from './cache/redis-click-counters.js';
+import { RedisRateLimiter } from './cache/redis-rate-limiter.js';
 import { RedisUrlCache, createRedis } from './cache/redis-url-cache.js';
 import { loadDotEnv, parseEnvOrExit } from './config/env.js';
 import { createPool } from './db/pool.js';
@@ -27,7 +28,23 @@ const clicks = new ClickCapture({
     warnBackground(error, 'click capture failed');
   },
 });
-const app = await buildApp({ pool, baseUrl: env.BASE_URL, cache, clicks });
+const rateLimiter = new RedisRateLimiter(redis, (error) => {
+  warnBackground(error, 'rate limiter redis error; failing open');
+});
+const app = await buildApp({
+  pool,
+  baseUrl: env.BASE_URL,
+  cache,
+  clicks,
+  rateLimiter,
+  rateLimits: {
+    createMax: env.RATE_LIMIT_CREATE_MAX,
+    createWindowSeconds: env.RATE_LIMIT_WINDOW_SECONDS,
+    redirectMax: env.RATE_LIMIT_REDIRECT_MAX,
+    redirectWindowSeconds: env.RATE_LIMIT_WINDOW_SECONDS,
+    ipPepper: env.CLICK_IP_SALT,
+  },
+});
 warnBackground = (error, message) => {
   app.log.warn({ err: error }, message);
 };

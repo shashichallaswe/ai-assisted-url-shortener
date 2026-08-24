@@ -4,6 +4,9 @@ import { HttpError } from '../lib/http-error.js';
 export function registerErrorHandler(app: FastifyInstance): void {
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof HttpError) {
+      if (error.retryAfterSeconds !== undefined) {
+        void reply.header('Retry-After', String(error.retryAfterSeconds));
+      }
       return reply.status(error.statusCode).send({
         error: {
           code: error.code,

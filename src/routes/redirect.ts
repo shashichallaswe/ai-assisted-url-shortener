@@ -1,10 +1,20 @@
 import type { FastifyPluginCallback } from 'fastify';
 import { firstHeader } from '../lib/headers.js';
 import { findUrlByCode } from '../repos/urls.js';
+import { enforceRateLimit, rateLimitIpDigest } from '../security/rate-limit.js';
 import { resolveRedirect } from '../services/redirect.js';
 
 export const redirectRoutes: FastifyPluginCallback = (app, _options, done) => {
   app.get('/:code', async (request, reply) => {
+    const { rateLimiter, rateLimits, clock } = app.appConfig;
+    await enforceRateLimit(
+      rateLimiter,
+      'redirect',
+      rateLimitIpDigest(request.ip, rateLimits.ipPepper),
+      rateLimits.redirectMax,
+      rateLimits.redirectWindowSeconds,
+      clock(),
+    );
     const hit = await resolveRedirect(
       {
         clock: app.appConfig.clock,

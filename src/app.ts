@@ -4,8 +4,10 @@ import type { Pool } from 'pg';
 import { ClickCapture } from './analytics/click-capture.js';
 import { MemoryClickCounters } from './cache/memory-click-counters.js';
 import type { UrlCache } from './cache/url-cache.js';
+import { MemoryRateLimiter } from './cache/memory-rate-limiter.js';
 import { MemoryUrlCache } from './cache/memory-url-cache.js';
 import { generateShortCode } from './lib/codes.js';
+import type { RateLimitConfig, RateLimiter } from './security/rate-limit.js';
 import { insertClickEvents } from './repos/click-events.js';
 import { loggerOptions } from './observability/logger.js';
 import { registerErrorHandler } from './plugins/error-handler.js';
@@ -23,6 +25,8 @@ export interface BuildAppOptions {
   cache?: UrlCache;
   clicks?: ClickCapture;
   clickIpSalt?: string;
+  rateLimiter?: RateLimiter;
+  rateLimits?: RateLimitConfig;
 }
 
 declare module 'fastify' {
@@ -34,6 +38,8 @@ declare module 'fastify' {
       generateCode: () => string;
       cache: UrlCache;
       clicks: ClickCapture;
+      rateLimiter: RateLimiter;
+      rateLimits: RateLimitConfig;
     };
   }
 }
@@ -53,11 +59,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       throw new Error('baseUrl is required when a database pool is provided');
     }
     const pool = options.pool;
+    const clock = options.clock ?? (() => new Date());
     const clicks =
       options.clicks ??
       new ClickCapture({
         salt: options.clickIpSalt ?? 'test-click-ip-salt',
-        clock: options.clock ?? (() => new Date()),
+        clock,
         counters: new MemoryClickCounters(),
         insert: (rows) => insertClickEvents(pool, rows),
         onError: (error) => {
@@ -67,12 +74,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     app.decorate('db', options.pool);
     app.decorate('appConfig', {
       baseUrl: options.baseUrl,
-      clock: options.clock ?? (() => new Date()),
+      clock,
       // Keep generateCode on the config object. Fastify binds decorated
       // functions, which would swallow Vitest mocks used in collision tests.
       generateCode: options.generateCode ?? generateShortCode,
       cache: options.cache ?? new MemoryUrlCache(),
       clicks,
+      rateLimiter: options.rateLimiter ?? new MemoryRateLimiter(clock),
+      rateLimits: options.rateLimits ?? {
+        createMax: 10_000,
+        createWindowSeconds: 60,
+        redirectMax: 10_000,
+        redirectWindowSeconds: 60,
+        ipPepper: 'test-rate-limit-pepper',
+      },
     });
     app.addHook('onClose', async () => {
       await clicks.flush();

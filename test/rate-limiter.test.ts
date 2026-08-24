@@ -42,7 +42,7 @@ describe('RedisRateLimiter', () => {
       ttl: vi.fn(),
     };
     const onError = vi.fn();
-    const limiter = new RedisRateLimiter(redis as never, onError);
+    const limiter = new RedisRateLimiter(redis, onError);
 
     await expect(limiter.consume('k', 1, 60)).resolves.toEqual({ allowed: true });
     expect(onError).toHaveBeenCalledOnce();
