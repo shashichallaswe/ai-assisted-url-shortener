@@ -5,6 +5,7 @@ import { notFound } from '../lib/http-error.js';
 import { redirectDecision } from '../lib/redirect-decision.js';
 import { publicShortUrl } from '../lib/public-url.js';
 import type { UrlRecord } from '../repos/urls.js';
+import { inspectDestination } from '../security/url-policy.js';
 
 export interface ResolveRedirectDeps {
   clock: () => Date;
@@ -32,11 +33,7 @@ export async function resolveRedirect(
     throw notFound();
   }
   if (cached !== null) {
-    const decision = redirectDecision(fromCachedUrl(cached), now);
-    if (!decision.ok) {
-      throw notFound();
-    }
-    return { destinationUrl: decision.destinationUrl, urlId: cached.id, code };
+    return finishRedirect(cached.id, code, fromCachedUrl(cached), now);
   }
 
   const row = await deps.findByCode(code);
@@ -45,16 +42,30 @@ export async function resolveRedirect(
     throw notFound();
   }
 
-  const decision = redirectDecision(row, now);
-  if (!decision.ok) {
-    throw notFound();
-  }
+  const hit = finishRedirect(row.id, code, row, now);
 
   const ttl = cacheTtlSeconds(row.expiresAt, now);
   if (ttl !== null) {
     await deps.cache.set(code, toCachedUrl(row), ttl);
   }
-  return { destinationUrl: decision.destinationUrl, urlId: row.id, code };
+  return hit;
+}
+
+function finishRedirect(
+  urlId: string,
+  code: string,
+  candidate: { destinationUrl: string; expiresAt: Date | null; deletedAt: Date | null },
+  now: Date,
+): RedirectHit {
+  const decision = redirectDecision(candidate, now);
+  if (!decision.ok) {
+    throw notFound();
+  }
+  const inspected = inspectDestination(decision.destinationUrl);
+  if (!inspected.ok) {
+    throw notFound();
+  }
+  return { destinationUrl: inspected.href, urlId, code };
 }
 
 export interface UrlMetadata {

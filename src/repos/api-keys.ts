@@ -4,6 +4,7 @@ export interface ApiKeyRecord {
   id: string;
   name: string;
   keyPrefix: string;
+  keyHash: Buffer;
   revokedAt: Date | null;
 }
 
@@ -11,6 +12,7 @@ interface ApiKeyRow {
   id: string;
   name: string;
   key_prefix: string;
+  key_hash: Buffer;
   revoked_at: Date | null;
 }
 
@@ -19,7 +21,7 @@ export async function findApiKeyByHash(
   keyHash: Buffer,
 ): Promise<ApiKeyRecord | null> {
   const { rows } = await db.query<ApiKeyRow>(
-    `select id, name, key_prefix, revoked_at from api_keys where key_hash = $1`,
+    `select id, name, key_prefix, key_hash, revoked_at from api_keys where key_hash = $1`,
     [keyHash],
   );
   const row = rows[0];
@@ -30,6 +32,7 @@ export async function findApiKeyByHash(
     id: row.id,
     name: row.name,
     keyPrefix: row.key_prefix,
+    keyHash: row.key_hash,
     revokedAt: row.revoked_at,
   };
 }

@@ -7,6 +7,15 @@ const ALPHABET_SIZE = CODE_ALPHABET.length;
 const REJECTION_CEILING = 256 - (256 % ALPHABET_SIZE);
 
 export function generateShortCode(): string {
+  for (;;) {
+    const code = generateRawCode();
+    if (!isReservedCode(code)) {
+      return code;
+    }
+  }
+}
+
+function generateRawCode(): string {
   const chars: string[] = [];
 
   while (chars.length < CODE_LENGTH) {

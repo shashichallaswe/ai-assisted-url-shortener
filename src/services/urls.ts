@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { withTransaction } from '../db/transaction.js';
+import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
 import { HttpError } from '../lib/http-error.js';
 import { isUniqueViolation } from '../lib/pg-errors.js';
 import { publicShortUrl } from '../lib/public-url.js';
@@ -77,6 +78,9 @@ export async function createUrl(
 
     for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt += 1) {
       const code = deps.generateCode();
+      if (isReservedCode(code) || !isWellFormedCode(code)) {
+        continue;
+      }
       // A unique violation aborts the whole Postgres transaction unless it is
       // isolated in a savepoint. Without this, the retry INSERT fails with 25P02.
       await client.query('savepoint code_attempt');
