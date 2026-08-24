@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loggerOptions, serializeReply, serializeRequest } from '../logger.js';
+import { createLoggerOptions, loggerOptions, serializeReply, serializeRequest } from '../logger.js';
 
 describe('log serializers', () => {
   it('omits the client IP address, which AGENTS.md forbids logging raw', () => {
@@ -17,6 +17,10 @@ describe('log serializers', () => {
 
   it('reduces a reply to its status code', () => {
     expect(serializeReply({ statusCode: 302 })).toStrictEqual({ statusCode: 302 });
+  });
+
+  it('takes the log level from configuration', () => {
+    expect(createLoggerOptions('debug').level).toBe('debug');
   });
 
   it('removes the Authorization header rather than masking it', () => {

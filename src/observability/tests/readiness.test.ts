@@ -5,8 +5,8 @@ describe('checkReadiness', () => {
   it('is ready when both probes succeed', async () => {
     await expect(
       checkReadiness({
-        postgres: async () => undefined,
-        redis: async () => undefined,
+        postgres: () => Promise.resolve(),
+        redis: () => Promise.resolve(),
       }),
     ).resolves.toEqual({ ready: true, postgres: 'ok', redis: 'ok' });
   });
@@ -14,10 +14,8 @@ describe('checkReadiness', () => {
   it('names postgres when that probe fails', async () => {
     await expect(
       checkReadiness({
-        postgres: async () => {
-          throw new Error('ECONNREFUSED');
-        },
-        redis: async () => undefined,
+        postgres: () => Promise.reject(new Error('ECONNREFUSED')),
+        redis: () => Promise.resolve(),
       }),
     ).resolves.toEqual({ ready: false, postgres: 'down', redis: 'ok' });
   });
@@ -25,10 +23,8 @@ describe('checkReadiness', () => {
   it('names redis when that probe fails', async () => {
     await expect(
       checkReadiness({
-        postgres: async () => undefined,
-        redis: async () => {
-          throw new Error('ECONNREFUSED');
-        },
+        postgres: () => Promise.resolve(),
+        redis: () => Promise.reject(new Error('ECONNREFUSED')),
       }),
     ).resolves.toEqual({ ready: false, postgres: 'ok', redis: 'down' });
   });

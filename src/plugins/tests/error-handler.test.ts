@@ -7,7 +7,7 @@ describe('unhandled errors', () => {
 
   beforeAll(async () => {
     app = await buildApp({ logger: false });
-    app.get('/boom', async () => {
+    app.get('/boom', () => {
       throw new Error('internal detail must not leak');
     });
     await app.ready();
