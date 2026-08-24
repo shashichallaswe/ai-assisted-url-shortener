@@ -142,7 +142,9 @@ An integration test asserts the plan still names that index, so a future schema 
 
 ## 4. URL policy
 
-Enforced in `security/urlPolicy`, called from the create flow, never from the redirect flow.
+Enforced in `security/urlPolicy`. Create calls it to reject a bad destination with `400`. Redirect calls it again on the stored value (and on cache hits) and returns `404` if the stored destination would no longer pass. That second check is structural only: still no fetch and no DNS. It exists so a row that was inserted by a bug, a migration, or a loosened older policy cannot become a `javascript:` open redirect.
+
+The create-time module is the single source of allow/deny rules. Redirect does not have a second policy.
 
 Accepted: a parseable absolute URL, `https:` scheme only, at most 2048 characters.
 
@@ -316,3 +318,5 @@ Per AGENTS.md section 9, these areas need the reviewer to confirm the design and
 2. **Cache invalidation** — section 5: delete commits before invalidating, a failed invalidation fails the request, and expiry relies on a capped TTL plus a re-check on every hit.
 3. **Hashed credential and hashed IP storage** — section 6: SHA-256 key hashes with a loggable prefix, daily-salted IP hashes, and the absence of a click retention policy.
 4. **Who may read analytics** — section 3, stats read path: any valid API key may read stats for any existing code, with no per-key ownership scoping in v1.
+5. **URL allow/deny policy** — section 4 and `docs/threat-model.md`: https-only, no fetch, private literals blocked, stored destinations re-checked on redirect.
+6. **Authentication path** — hashed Bearer keys, `timingSafeEqual` against the stored digest, revoked keys refused with the same 401 as unknown.
