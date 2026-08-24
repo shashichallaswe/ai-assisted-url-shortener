@@ -47,7 +47,7 @@ Base path for managed resources is `/api/v1`. The redirect deliberately sits at 
 | `POST` | `/api/v1/urls` | Bearer | `201` | `400` invalid body or rejected destination, `401`, `409` idempotency-key reuse with a different body, `429` |
 | `GET` | `/:code` | Public | `302` | `404` unknown, expired, deleted, or malformed code; `429` |
 | `GET` | `/api/v1/urls/:code` | Bearer | `200` | `401`, `404` |
-| `GET` | `/api/v1/urls/:code/stats` | Bearer | `200` | `401`, `404` |
+| `GET` | `/api/v1/urls/:code/stats` | Bearer | `200` | `400` `days` outside 1-90, `401`, `404` |
 | `DELETE` | `/api/v1/urls/:code` | Bearer | `204` | `401`, `404` |
 | `GET` | `/health` | Public | `200` | none; liveness only, never checks dependencies |
 | `GET` | `/ready` | Public | `200` | `503` with the failing dependency named |
