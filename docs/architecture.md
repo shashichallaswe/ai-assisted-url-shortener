@@ -190,6 +190,8 @@ Invalidating after commit rather than before avoids a window where a concurrent 
 - The cache TTL is capped at the link's remaining lifetime, so an entry can never outlive the link it describes.
 - The redirect re-checks `expires_at` against the clock on every request, including cache hits, so even a stale entry yields `404`.
 
+Click history is not deleted. `GET /api/v1/urls/:code/stats` still returns the windowed series for a taken-down code so an operator can audit what happened. Public redirect and metadata stay 404.
+
 **This is a human sign-off area.** The reviewer is confirming the delete-then-invalidate ordering and the choice to fail a delete when invalidation fails.
 
 ## 6. Data model
