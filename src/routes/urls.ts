@@ -1,7 +1,7 @@
 import type { FastifyPluginCallback } from 'fastify';
 import { z } from 'zod';
 import { firstHeader } from '../lib/headers.js';
-import { HttpError } from '../lib/http-error.js';
+import { HttpError } from '../lib/errors/http-error.js';
 import { selectClickStats } from '../repos/click-events.js';
 import { findUrlByCode } from '../repos/urls.js';
 import { authenticateApiKey, parseBearerToken } from '../security/auth.js';

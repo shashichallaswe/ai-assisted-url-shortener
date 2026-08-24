@@ -2,8 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { withTransaction } from '../db/transaction.js';
 import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
-import { HttpError } from '../lib/http-error.js';
-import { isUniqueViolation } from '../lib/pg-errors.js';
+import { HttpError } from '../lib/errors/http-error.js';
+import { isUniqueViolation } from '../lib/errors/pg.js';
 import { publicShortUrl } from '../lib/public-url.js';
 import type { ApiKeyRecord } from '../repos/api-keys.js';
 import {

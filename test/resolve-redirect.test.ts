@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryUrlCache } from '../src/cache/memory-url-cache.js';
-import { HttpError } from '../src/lib/http-error.js';
+import { HttpError } from '../src/lib/errors/http-error.js';
 import type { UrlRecord } from '../src/repos/urls.js';
 import { resolveRedirect } from '../src/services/redirect.js';
 

@@ -101,7 +101,7 @@ src/
   security/          auth and destination policy
   db/                pool, migration runner, migration discovery
   observability/     log serializers
-  lib/               pure helpers
+  lib/               pure helpers; errors/ holds HTTP, Postgres, and describe helpers
 migrations/          numbered SQL, applied in order
 test/                Vitest suites; *.integration.test.ts need PostgreSQL
 openapi.yaml         HTTP contract

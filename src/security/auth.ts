@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
-import { unauthorized } from '../lib/http-error.js';
+import { unauthorized } from '../lib/errors/http-error.js';
 import { findApiKeyByHash, type ApiKeyRecord } from '../repos/api-keys.js';
 
 const ZERO_HASH = Buffer.alloc(32);
