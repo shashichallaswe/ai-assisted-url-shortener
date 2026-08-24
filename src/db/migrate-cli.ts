@@ -1,5 +1,5 @@
 import { loadDotEnv, parseEnvOrExit } from '../config/env.js';
-import { describeError } from '../lib/errors.js';
+import { describeError } from '../lib/errors/describe.js';
 import { migrate } from './migrate.js';
 import { createPool } from './pool.js';
 

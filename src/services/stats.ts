@@ -1,6 +1,6 @@
 import { isReservedCode, isWellFormedCode } from '../lib/codes.js';
 import { STATS_DEFAULT_DAYS, STATS_MAX_DAYS } from '../lib/constants.js';
-import { HttpError, notFound } from '../lib/http-error.js';
+import { HttpError, notFound } from '../lib/errors/http-error.js';
 import type { ClickStats } from '../repos/click-events.js';
 import type { UrlRecord } from '../repos/urls.js';
 

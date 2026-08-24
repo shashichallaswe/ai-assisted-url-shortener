@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { tooManyRequests } from '../lib/http-error.js';
+import { tooManyRequests } from '../lib/errors/http-error.js';
 
 export type RateLimitDecision = { allowed: true } | { allowed: false; retryAfterSeconds: number };
 
